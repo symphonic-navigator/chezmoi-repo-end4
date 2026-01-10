@@ -1,0 +1,21 @@
+partial alphanumeric_keys modifier_keys
+xkb_symbols "basic" {
+    include "at(nodeadkeys)"
+
+    name[Group1]="de_at_enhanced";
+
+    // ALTGR mappings
+    key <AD02> { [ w, W, braceleft ] };       // AltGr+W = {
+    key <AC01> { [ a, A, bracketleft ] };     // AltGr+A = [
+    key <AC02> { [ s, S, parenleft ] };       // AltGr+S = (
+    key <AC03> { [ d, D, parenright ] };      // AltGr+D = )
+    key <AC04> { [ f, F, bracketright ] };    // AltGr+F = ]
+    key <AD04> { [ r, R, braceright ] };      // AltGr+R = }
+    key <AD11> { [ udiaeresis, Udiaeresis, grave ] }; // AltGr+Ü = `
+    key <BKSL> { [ numbersign, apostrophe, apostrophe, apostrophe ] }; // AltGr+# = '
+    key <AC11> { [ adiaresis, Adiaresis, asterisk ] };
+    key <AE12> { [ apostrophe, acute, grave, quotedbl ] };
+    // key <SPCE> { [ space, U00A0, U202F, space ] };
+};
+
+

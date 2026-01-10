@@ -1,0 +1,38 @@
+[pyprland]
+plugins = ["scratchpads", "layout_center"]
+
+[layout_center]
+margin = 100
+offset = [0, 30]
+next = "movefocus r"
+prev = "movefocus l"
+next2 = "movefocus d"
+prev2 = "movefocus u"
+
+[scratchpads.defaults]
+excludes = "*"
+restore_excluded = false
+lazy = false
+alt_toggle = true
+multi = false
+
+[scratchpads.pavucontrol]
+use = "defaults"
+command = "pavucontrol"
+size = "60% 40%"
+position = "20% 30%"
+class = "org.pulseaudio.pavucontrol"
+
+[scratchpads.qalculate]
+use = "defaults"
+command = "qalculate-gtk"
+size = "40% 40%"
+position = "30% 30%"
+class = "qalculate-gtk"
+
+[scratchpads.orage]
+use = "defaults"
+command = "orage"
+size = "30% 30%"
+position = "35% 35%"
+class = "orage"
