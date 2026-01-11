@@ -57,6 +57,12 @@ sudo systemctl enable fstrim.timer
 # --- update ---
 bash -c "$entryDir/update-local.sh"
 
+# --- hyprwalz installation ---
+echo "💻 installing hyprwalz..."
+git clone "https://github.com/symphonic-navigator/hyprwalz.git" "/tmp/install/hyprwalz"
+bash -c "/tmp/install/hyprwalz/install.sh"
+rm -rf "/tmp/install/hyprwalz"
+
 # --- software installation ---
 if hostnamectl | grep -qi 'tuxedo\|xmg\|clevo'; then
   echo "🖥️ detected TUXEDO / XMG / Clevo hardware, installing now..."
