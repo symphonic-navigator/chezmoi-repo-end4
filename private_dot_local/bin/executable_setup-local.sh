@@ -54,9 +54,6 @@ installToys=$(ask "🔒 Install extra (toy) packages?")
 echo "💽 starting SSD trimming service..."
 sudo systemctl enable fstrim.timer
 
-# --- update ---
-bash -c "$entryDir/update-local.sh"
-
 # --- hyprwalz installation ---
 echo "💻 installing hyprwalz..."
 git clone "https://github.com/symphonic-navigator/hyprwalz.git" "/tmp/install/hyprwalz"
@@ -86,3 +83,6 @@ if [[ $installToys = "1" ]]; then
   echo "🤡 installing toy packages..."
   install toys
 fi
+
+# --- update ---
+bash -c "$entryDir/update-local.sh"
