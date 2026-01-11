@@ -1,8 +1,5 @@
-
-
 # Added by Toolbox App
-export PATH="$PATH:/home/chris/.local/share/JetBrains/Toolbox/scripts"
+export PATH="$PATH:$HOME/.local/share/JetBrains/Toolbox/scripts"
 
-# Keychron Launcher Support
-export UDEV_RULES_PATH="$HOME/.local/share/udev/rules.d:$UDEV_RULES_PATH"
-
+# User scripts
+export PATH="$PATH:$HOME/.local/bin"
