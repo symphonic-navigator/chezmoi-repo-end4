@@ -4,8 +4,9 @@
 set -e # stop on errors
 set -u # fail on unset variables
 
-scriptDir=$(dirname "$0")
-pkginfoDir="$scriptDir/pkginfo"
+entryDir=$(dirname "$0")
+pkginfoDir="$entryDir/pkginfo"
+scriptsDir="$entryDir/scripts"
 
 # --- interactive functions ---
 ask() {
@@ -50,17 +51,13 @@ fi
 
 installToys=$(ask "🔒 Install extra (toy) packages?")
 
-# --- preparation ---
-
-echo "🌐 package database sync and system update..."
-sudo pacman -Syyu --noconfirm
-yay -Syyu --noconfirm
-
 echo "💽 starting SSD trimming service..."
 sudo systemctl enable fstrim.timer
 
-# --- software installation ---
+# --- update ---
+bash -c "$entryDir/update-local.sh"
 
+# --- software installation ---
 if hostnamectl | grep -qi 'tuxedo\|xmg\|clevo'; then
   echo "🖥️ detected TUXEDO / XMG / Clevo hardware, installing now..."
   install tuxedo
