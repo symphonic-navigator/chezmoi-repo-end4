@@ -53,9 +53,6 @@ echo "🌐 package update..."
 sudo pacman -Syu --noconfirm || true
 yay -Syu --noconfirm || true
 
-# --- update lazyvim ---
-bash -c "$scriptsDir/update-lazyvim.sh"
-
 # --- hyprwalz installation ---
 echo "💻 installing hyprwalz..."
 git clone "https://github.com/symphonic-navigator/hyprwalz.git" "/tmp/install/hyprwalz"
@@ -106,6 +103,9 @@ if [[ $INSTALL_TOYS = "1" ]]; then
   echo "🤡 installing toy packages..."
   install toys
 fi
+
+# --- update lazyvim ---
+bash -c "$scriptsDir/update-lazyvim.sh"
 
 # --- chezmoi update ---
 echo "🥐 updating chezmoi..."
