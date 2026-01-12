@@ -113,7 +113,7 @@ chezmoi update --force
 
 # --- update end-4 dotfiles ---
 echo "🖥️ updating end-4 dotfiles..."
-pushd ~/dots-hyprland
+pushd ~/repos/dots-hyprland
 git stash
 git pull
-bash -c "UV_VENV_CLEAR=1 ~/dots-hyprland/setup install -f --skip-sysupdate --skip-allgreeting --skip-miscconf --skip-fish --clean"
+bash -c "UV_VENV_CLEAR=1 ~/repos/dots-hyprland/setup install -f --skip-sysupdate --skip-allgreeting --skip-miscconf --skip-fish --clean"
