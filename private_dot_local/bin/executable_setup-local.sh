@@ -7,6 +7,8 @@ entryDir=$(dirname "$0")
 pkginfoDir="$entryDir/pkginfo"
 scriptsDir="$entryDir/scripts"
 
+mkdir -p "$HOME/.config"
+
 # --- interactive functions ---
 ask() {
   local prompt="$1"

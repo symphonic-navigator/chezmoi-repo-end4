@@ -31,8 +31,8 @@ installYay() {
 }
 
 install() {
-  installPacman $1
-  installYay $1
+  installPacman "$1"
+  installYay "$1"
 }
 
 # --- start ---
@@ -46,6 +46,11 @@ if [[ ! -f "$config_file" ]]; then
   exit 1
 fi
 
+command -v yay >/dev/null || {
+  echo "❌ yay missing"
+  exit 1
+}
+
 source "$config_file"
 
 # --- package update ---
@@ -55,6 +60,8 @@ yay -Syu --noconfirm || true
 
 # --- hyprwalz installation ---
 echo "💻 installing hyprwalz..."
+mkdir -p "/tmp/install"
+rm -rf "/tmp/install/hyprwalz"
 git clone "https://github.com/symphonic-navigator/hyprwalz.git" "/tmp/install/hyprwalz"
 bash -c "/tmp/install/hyprwalz/install.sh"
 rm -rf "/tmp/install/hyprwalz"
@@ -75,7 +82,7 @@ fi
 
 echo "⌨️ enabling chromium access to keychron devices..."
 sudo mkdir -p /etc/udev/rules.d
-echo 'SUBSYSTEM=="hidraw", ATTRS{idVendor}=="3434", MODE="0666"' | sudo tee /etc/udev/rules.d/99-keychron.rules
+echo 'SUBSYSTEM=="hidraw", ATTRS{idVendor}=="3434", TAG+="uaccess"' | sudo tee /etc/udev/rules.d/99-keychron.rules
 sudo udevadm control --reload-rules
 sudo udevadm trigger
 
@@ -94,7 +101,7 @@ if [[ $INSTALL_PERSONAL = "1" ]]; then
   install personal
 fi
 
-if [[ $INSTALL_PERSONAL = "1" ]]; then
+if [[ $INSTALL_GAMING = "1" ]]; then
   echo "🎮 installing gaming packages..."
   install gaming
 fi
@@ -114,6 +121,7 @@ chezmoi update --force
 # --- update end-4 dotfiles ---
 echo "🖥️ updating end-4 dotfiles..."
 pushd ~/repos/dots-hyprland
-git stash
+git stash -u || true
 git pull
 bash -c "UV_VENV_CLEAR=1 ~/repos/dots-hyprland/setup install -f --skip-sysupdate --skip-allgreeting --skip-miscconf --skip-fish --clean"
+popd
