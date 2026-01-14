@@ -40,9 +40,18 @@ installYay() {
 	fi
 }
 
+installFlatpak() {
+	local package_file
+	package_file="$pkginfo_dir/$1.flatpak"
+	if [[ -f "$package_file" ]]; then
+		extract_packages "$package_file" | xargs -r flatpak install --user -y --noninteractive
+	fi
+}
+
 install() {
 	installPacman "$1"
 	installYay "$1"
+	installFlatpak "$1"
 }
 
 # --- start ---
@@ -121,6 +130,10 @@ if [[ $INSTALL_TOYS = "1" ]]; then
 	echo "🤡 installing toy packages..."
 	install toys
 fi
+
+# --- sddm theme installation ---
+echo "🎨 installing sddm themes..."
+install sddm-themes
 
 # --- update lazyvim ---
 bash -c "$scripts_dir/update-lazyvim.sh"

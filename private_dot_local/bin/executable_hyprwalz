@@ -1,0 +1,384 @@
+#!/usr/bin/env python3
+"""
+hyprwalz - Automatic, context-based monitor arranger for Hyprland
+"""
+
+import argparse
+import json
+import shutil
+import subprocess
+import tomllib
+from datetime import datetime
+from pathlib import Path
+from typing import Dict, List, Optional, Set
+
+
+class HyprwalzConfig:
+    """Configuration management for hyprwalz"""
+    
+    def __init__(self, config_dir: Optional[Path] = None):
+        self.config_dir = config_dir or Path.home() / ".config" / "hyprwalz"
+        self.config_file = self.config_dir / "monitors.toml"
+        self.hypr_config_dir = Path.home() / ".config" / "hypr"
+        self.monitors_conf = self.hypr_config_dir / "monitors.conf"
+        self.template_file = self.config_dir / "monitors.conf.template"
+
+        # Default settings
+        self.defaults = {
+            "internal_screen": "eDP-1",
+            "clamshell_always": True,
+            "internal_screen_config": "preferred,0x0,1.25",
+            "internal_off_hook": "",
+            "internal_on_hook": "",
+        }
+        
+        self._ensure_config_dirs()
+        self._load_config()
+    
+    def _ensure_config_dirs(self):
+        """Ensure configuration directories exist"""
+        self.config_dir.mkdir(parents=True, exist_ok=True)
+        self.hypr_config_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Create backup directory
+        backup_dir = Path("/tmp/hyprwalz/backup")
+        backup_dir.mkdir(parents=True, exist_ok=True)
+    
+    def _load_config(self):
+        """Load configuration from TOML file"""
+        if not self.config_file.exists():
+            self._create_default_config()
+        
+        with open(self.config_file, "rb") as f:
+            config_data = tomllib.load(f)
+        
+        # Load general settings
+        self.general = {**self.defaults, **config_data.get("general", {})}
+        
+        # Load monitor configurations
+        self.monitors = config_data.get("monitors", {})
+    
+    def _create_default_config(self):
+        """Create default configuration file"""
+        default_config = """[general]
+internal_screen = "eDP-1"
+clamshell_always = true
+internal_screen_config = "preferred,0x0,1.25"
+internal_off_hook = ""
+internal_on_hook = ""
+
+[monitors]
+# Monitor configurations will be added here automatically
+# Format: "Monitor Description" = "hyprland monitor settings"
+# Example: "LG Electronics 38GN950 207NTSUA3054" = "3840x1600@74.98,0x0,1.0"
+"""
+        with open(self.config_file, "w") as f:
+            f.write(default_config)
+    
+    def save_monitor_config(self, description: str, config: str):
+        """Save a monitor configuration to the TOML file"""
+        # Read current config
+        with open(self.config_file, "rb") as f:
+            config_data = tomllib.load(f)
+        
+        # Update monitors section
+        if "monitors" not in config_data:
+            config_data["monitors"] = {}
+        config_data["monitors"][description] = config
+        
+        # Write back to file (simple approach - could use a TOML writer library)
+        self._write_toml_config(config_data)
+        
+        # Reload config
+        self._load_config()
+    
+    def _write_toml_config(self, config_data: dict):
+        """Write configuration back to TOML file"""
+        content = "[general]\n"
+        for key, value in config_data.get("general", self.general).items():
+            if isinstance(value, str):
+                content += f'{key} = "{value}"\n'
+            elif isinstance(value, bool):
+                content += f'{key} = {str(value).lower()}\n'
+            else:
+                content += f'{key} = {value}\n'
+        
+        content += "\n[monitors]\n"
+        for desc, conf in config_data.get("monitors", {}).items():
+            content += f'"{desc}" = "{conf}"\n'
+        
+        with open(self.config_file, "w") as f:
+            f.write(content)
+
+
+class MonitorManager:
+    """Handles monitor detection and configuration"""
+    
+    def __init__(self, config: HyprwalzConfig):
+        self.config = config
+    
+    def get_all_monitors(self) -> List[Dict]:
+        """Get all connected monitors via hyprctl"""
+        try:
+            result = subprocess.run(
+                ["hyprctl", "monitors", "all", "-j"],
+                capture_output=True,
+                text=True,
+                check=True
+            )
+            return json.loads(result.stdout)
+        except (subprocess.CalledProcessError, json.JSONDecodeError) as e:
+            print(f"Error getting all monitors: {e}")
+            return []
+    
+    def get_active_monitors(self) -> List[Dict]:
+        """Get currently active monitors via hyprctl"""
+        try:
+            result = subprocess.run(
+                ["hyprctl", "monitors", "-j"],
+                capture_output=True,
+                text=True,
+                check=True
+            )
+            return json.loads(result.stdout)
+        except (subprocess.CalledProcessError, json.JSONDecodeError) as e:
+            print(f"Error getting active monitors: {e}")
+            return []
+    
+    def get_monitor_descriptions(self, monitors: List[Dict]) -> Set[str]:
+        """Extract monitor descriptions from monitor data"""
+        descriptions = set()
+        for monitor in monitors:
+            if "description" in monitor:
+                descriptions.add(monitor["description"])
+        return descriptions
+    
+    def is_internal_monitor(self, monitor: Dict) -> bool:
+        """Check if monitor is the internal screen"""
+        return monitor.get("name", "") == self.config.general["internal_screen"]
+    
+    def has_external_monitors(self, monitors: List[Dict]) -> bool:
+        """Check if there are any external monitors connected"""
+        for monitor in monitors:
+            if not self.is_internal_monitor(monitor):
+                return True
+        return False
+    
+    def should_disable_internal(self, all_monitors: List[Dict]) -> bool:
+        """Determine if internal monitor should be disabled"""
+        if not self.config.general["clamshell_always"]:
+            # TODO: In clamshell_always=false mode, we'd need to check lid state
+            # For now, we'll use the simpler logic
+            pass
+        
+        return (self.config.general["clamshell_always"] and 
+                self.has_external_monitors(all_monitors))
+    
+    def get_monitor_config_string(self, monitor: Dict, disabled: bool = False) -> str:
+        """Generate monitor configuration string for hyprland"""
+        name = monitor.get("name", "")
+        
+        if disabled:
+            return f"monitor={name},disabled"
+        
+        # Check if we have a custom configuration for this monitor
+        description = monitor.get("description", "")
+        if description in self.config.monitors:
+            config = self.config.monitors[description]
+            return f"monitor={name},{config}"
+        
+        # For internal monitor, use internal_screen_config
+        if self.is_internal_monitor(monitor):
+            config = self.config.general["internal_screen_config"]
+            return f"monitor={name},{config}"
+        
+        # For unconfigured external monitors, use preferred settings
+        # and add to config for future editing
+        preferred_config = "preferred,auto,1.0"
+        if description and description != "":
+            self.config.save_monitor_config(description, preferred_config)
+            self.notify(f"Added new monitor to config: {description}")
+        
+        return f"monitor={name},{preferred_config}"
+    
+    def generate_monitors_conf(self, all_monitors: List[Dict]) -> str:
+        """Generate the complete monitors.conf content"""
+        content = ""
+        
+        # Read template if it exists
+        if self.config.template_file.exists():
+            with open(self.config.template_file, "r") as f:
+                content = f.read()
+            if content and not content.endswith("\n"):
+                content += "\n"
+        
+        # Add comment header
+        content += f"# Generated by hyprwalz on {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}\n"
+        
+        # Determine which monitors should be disabled
+        internal_should_be_disabled = self.should_disable_internal(all_monitors)
+        
+        # Generate monitor configurations
+        for monitor in all_monitors:
+            is_internal = self.is_internal_monitor(monitor)
+            disabled = is_internal and internal_should_be_disabled
+            
+            config_line = self.get_monitor_config_string(monitor, disabled)
+            content += f"{config_line}\n"
+        
+        return content
+    
+    def backup_current_config(self):
+        """Backup current monitors.conf file"""
+        if not self.config.monitors_conf.exists():
+            return
+        
+        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        backup_dir = Path("/tmp/hyprwalz/backup")
+        backup_file = backup_dir / f"{timestamp}.monitors.conf.bak"
+        
+        shutil.copy2(self.config.monitors_conf, backup_file)
+    
+    def write_monitors_conf(self, content: str):
+        """Write monitors.conf and reload hyprland"""
+        # Backup current config
+        self.backup_current_config()
+        
+        # Write new config
+        with open(self.config.monitors_conf, "w") as f:
+            f.write(content)
+        
+        # Reload hyprland
+        try:
+            subprocess.run(["hyprctl", "reload", "-q"], check=True)
+            self.notify("Monitor configuration updated and reloaded")
+        except subprocess.CalledProcessError as e:
+            print(f"Error reloading hyprland: {e}")
+    
+    def execute_hooks(self, all_monitors: List[Dict]):
+        """Execute internal monitor on/off hooks"""
+        internal_disabled = self.should_disable_internal(all_monitors)
+        
+        if internal_disabled and self.config.general["internal_off_hook"]:
+            cmd = self.config.general["internal_off_hook"]
+            try:
+                subprocess.run(["hyprctl", "dispatch", "-q", "exec", cmd], check=True)
+            except subprocess.CalledProcessError as e:
+                print(f"Error executing internal_off_hook: {e}")
+        
+        elif not internal_disabled and self.config.general["internal_on_hook"]:
+            cmd = self.config.general["internal_on_hook"]
+            try:
+                subprocess.run(["hyprctl", "dispatch", "-q", "exec", cmd], check=True)
+            except subprocess.CalledProcessError as e:
+                print(f"Error executing internal_on_hook: {e}")
+    
+    def notify(self, message: str):
+        """Send desktop notification"""
+        try:
+            subprocess.run(["notify-send", "hyprwalz", message], check=True)
+        except subprocess.CalledProcessError:
+            # notify-send might not be available, just print
+            print(f"hyprwalz: {message}")
+    
+    def needs_update(self, all_monitors: List[Dict]) -> bool:
+        """Check if monitor configuration needs to be updated"""
+        if not self.config.monitors_conf.exists():
+            return True
+        
+        # Generate what the config should be
+        desired_content = self.generate_monitors_conf(all_monitors)
+        
+        # Read current config
+        with open(self.config.monitors_conf, "r") as f:
+            current_content = f.read()
+        
+        # Compare (ignoring timestamp comments)
+        def normalize_content(content: str) -> str:
+            lines = content.split("\n")
+            # Remove timestamp comments and empty lines for comparison
+            filtered_lines = [
+                line for line in lines 
+                if line.strip() and not line.strip().startswith("# Generated by hyprwalz on")
+            ]
+            return "\n".join(filtered_lines)
+        
+        return normalize_content(desired_content) != normalize_content(current_content)
+
+
+class Hyprwalz:
+    """Main hyprwalz application"""
+    
+    def __init__(self):
+        self.config = HyprwalzConfig()
+        self.monitor_manager = MonitorManager(self.config)
+    
+    def run(self, force: bool = False):
+        """Main execution - detect and configure monitors"""
+        all_monitors = self.monitor_manager.get_all_monitors()
+        
+        if not all_monitors:
+            print("No monitors detected")
+            return
+        
+        # Check if update is needed
+        if not force and not self.monitor_manager.needs_update(all_monitors):
+            return  # No change needed
+        
+        # Generate and write new configuration
+        new_config = self.monitor_manager.generate_monitors_conf(all_monitors)
+        self.monitor_manager.write_monitors_conf(new_config)
+        
+        # Execute hooks
+        self.monitor_manager.execute_hooks(all_monitors)
+    
+    def dry_run(self):
+        """Show what would be written to monitors.conf without actually writing it"""
+        all_monitors = self.monitor_manager.get_all_monitors()
+        
+        if not all_monitors:
+            print("No monitors detected")
+            return
+        
+        new_config = self.monitor_manager.generate_monitors_conf(all_monitors)
+        print("Would write to ~/.config/hypr/monitors.conf:")
+        print("-" * 50)
+        print(new_config)
+        print("-" * 50)
+    
+    def reset(self):
+        """Reset configuration by detecting all current monitors and adding them to config"""
+        all_monitors = self.monitor_manager.get_all_monitors()
+        
+        for monitor in all_monitors:
+            description = monitor.get("description", "")
+            if description and not self.monitor_manager.is_internal_monitor(monitor):
+                # Add with preferred settings
+                self.config.save_monitor_config(description, "preferred,auto,1.0")
+        
+        print("Configuration reset - all monitors added with default settings")
+        self.monitor_manager.notify("Monitor configuration reset")
+
+
+def main():
+    parser = argparse.ArgumentParser(description="hyprwalz - Automatic monitor arranger for Hyprland")
+    parser.add_argument("command", nargs="?", choices=["reset", "dry-run", "force"], 
+                       help="Command to execute (default: normal operation)")
+    
+    args = parser.parse_args()
+    
+    app = Hyprwalz()
+    
+    if args.command == "reset":
+        app.reset()
+    elif args.command == "force":
+        app.run(force=True)
+    elif args.command == "dry-run":
+        app.dry_run()
+    else:
+        app.run()
+
+
+if __name__ == "__main__":
+    main()
+

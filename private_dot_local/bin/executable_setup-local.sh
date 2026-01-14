@@ -48,5 +48,12 @@ echo "INSTALL_PERSONAL=$installPersonal" >"$config_file"
 echo "INSTALL_GAMING=$installGaming" >>"$config_file"
 echo "INSTALL_TOYS=$installToys" >>"$config_file"
 
+# --- prerequisites ---
+echo "❕preparing installation of the system (prerequisites)..."
+
+sudo pacman -S --noconfirm --needed flatpak
+yay -S --noconfirm --needed pyprland
+flatpak remote-add --user --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
+
 # --- update ---
 bash -c "$update_script"
