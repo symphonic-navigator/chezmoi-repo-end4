@@ -48,6 +48,18 @@ echo "INSTALL_PERSONAL=$installPersonal" >"$config_file"
 echo "INSTALL_GAMING=$installGaming" >>"$config_file"
 echo "INSTALL_TOYS=$installToys" >>"$config_file"
 
+# --- ssh agent ---
+echo "🔑 starting ssh agent..."
+
+systemctl --user daemon-reexec
+systemctl --user daemon-reload
+
+systemctl --user enable --now ssh-agent.service
+
+loginctl enable-linger "$USER"
+
+echo "✅ ssh-agent user service set up and running."
+
 # --- prerequisites ---
 echo "❕preparing installation of the system (prerequisites)..."
 
