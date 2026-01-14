@@ -3,54 +3,65 @@
 # --- script setup ---
 set -euo pipefail
 
-entryDir=$(dirname "$0")
-pkginfoDir="$entryDir/pkginfo"
-scriptsDir="$entryDir/scripts"
-
-config_file="$HOME/.config/local-system.conf"
+script_dir="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
+pkginfo_dir="$script_dir/pkginfo"
+scripts_dir="$script_dir/scripts"
+config_dir="$HOME/.config"
+config_name="local-system.conf"
+config_file="$config_dir/$config_name"
+tmp_root="/tmp/install"
+hyprwalz_repo="https://github.com/symphonic-navigator/hyprwalz.git"
+hyprwalz_dir="$tmp_root/hyprwalz"
+dots_repo="$HOME/repos/dots-hyprland"
+dots_setup="$dots_repo/setup"
+keychron_rules_dir="/etc/udev/rules.d"
+keychron_rules_file="$keychron_rules_dir/99-keychron.rules"
+journald_conf_dir="/etc/systemd/journald.conf.d"
+journald_conf_file="$journald_conf_dir/volatile.conf"
 
 # --- installers ---
 extract_packages() {
-  grep -v -E '^[[:space:]]*#|^[[:space:]]*$' "$1"
+	grep -v -E '^[[:space:]]*#|^[[:space:]]*$' "$1"
 }
 
 installPacman() {
-  local package_file
-  package_file="$pkginfoDir/$1.pacman"
-  if [[ -f "$package_file" ]]; then
-    extract_packages "$package_file" | sudo pacman --needed --noconfirm -S -
-  fi
+	local package_file
+	package_file="$pkginfo_dir/$1.pacman"
+	if [[ -f "$package_file" ]]; then
+		extract_packages "$package_file" | sudo pacman --needed --noconfirm -S -
+	fi
 }
 
 installYay() {
-  local package_file
-  package_file="$pkginfoDir/$1.yay"
-  if [[ -f "$package_file" ]]; then
-    extract_packages "$package_file" | yay --needed --noconfirm --removemake --answerclean All --answeredit N --answerupgrade Y -S -
-  fi
+	local package_file
+	package_file="$pkginfo_dir/$1.yay"
+	if [[ -f "$package_file" ]]; then
+		extract_packages "$package_file" | yay --needed --noconfirm --removemake --answerclean All --answeredit N --answerupgrade Y -S -
+	fi
 }
 
 install() {
-  installPacman "$1"
-  installYay "$1"
+	installPacman "$1"
+	installYay "$1"
 }
 
 # --- start ---
 if [[ $EUID -eq 0 ]]; then
-  echo "❌ do not run this script as root or sudo"
-  exit 1
+	echo "❌ do not run this script as root or sudo"
+	exit 1
 fi
 
 if [[ ! -f "$config_file" ]]; then
-  echo "❌ configuration file is missing - please run setup-local instead"
-  exit 1
+	echo "❌ configuration file is missing - please run setup-local instead"
+	exit 1
 fi
 
 command -v yay >/dev/null || {
-  echo "❌ yay missing"
-  exit 1
+	echo "❌ yay missing"
+	exit 1
 }
 
+# shellcheck source=/dev/null
 source "$config_file"
 
 # --- package update ---
@@ -60,36 +71,36 @@ yay -Syu --noconfirm || true
 
 # --- hyprwalz installation ---
 echo "💻 installing hyprwalz..."
-mkdir -p "/tmp/install"
-rm -rf "/tmp/install/hyprwalz"
-git clone "https://github.com/symphonic-navigator/hyprwalz.git" "/tmp/install/hyprwalz"
-bash -c "/tmp/install/hyprwalz/install.sh"
-rm -rf "/tmp/install/hyprwalz"
+mkdir -p "$tmp_root"
+rm -rf "$hyprwalz_dir"
+git clone "$hyprwalz_repo" "$hyprwalz_dir"
+bash -c "$hyprwalz_dir/install.sh"
+rm -rf "$hyprwalz_dir"
 
 # --- hardware installation ---
 echo "💽 starting SSD trimming service..."
 sudo systemctl enable fstrim.timer
 
 if hostnamectl | grep -qi 'tuxedo\|xmg\|clevo'; then
-  echo "🖥️ detected TUXEDO / XMG / Clevo hardware, installing now..."
-  install tuxedo
+	echo "🖥️ detected TUXEDO / XMG / Clevo hardware, installing now..."
+	install tuxedo
 fi
 
-if inxi -G | grep -iq nvidia; then
-  echo "🔧 detected nvidia GPU, enabling nvidia-powerd..."
-  sudo systemctl enable --now nvidia-powerd.service
+if command -v inxi >/dev/null && inxi -G | grep -iq nvidia; then
+	echo "🔧 detected nvidia GPU, enabling nvidia-powerd..."
+	sudo systemctl enable --now nvidia-powerd.service
 fi
 
 echo "⌨️ enabling chromium access to keychron devices..."
-sudo mkdir -p /etc/udev/rules.d
-echo 'SUBSYSTEM=="hidraw", ATTRS{idVendor}=="3434", TAG+="uaccess"' | sudo tee /etc/udev/rules.d/99-keychron.rules
+sudo mkdir -p "$keychron_rules_dir"
+echo 'SUBSYSTEM=="hidraw", ATTRS{idVendor}=="3434", TAG+="uaccess"' | sudo tee "$keychron_rules_file"
 sudo udevadm control --reload-rules
 sudo udevadm trigger
 
 # --- privacy setup ---
 echo "🥷 volatile journald..."
-sudo mkdir -p /etc/systemd/journald.conf.d
-echo -e "[Journal]\nStorage=volatile\nRuntimeMaxUse=128M\nSystemMaxUse=0" | sudo tee /etc/systemd/journald.conf.d/volatile.conf >/dev/null
+sudo mkdir -p "$journald_conf_dir"
+echo -e "[Journal]\nStorage=volatile\nRuntimeMaxUse=128M\nSystemMaxUse=0" | sudo tee "$journald_conf_file" >/dev/null
 sudo systemctl restart systemd-journald
 
 # --- software installation ---
@@ -97,22 +108,22 @@ echo "🛠️ installing common packages..."
 install common
 
 if [[ $INSTALL_PERSONAL = "1" ]]; then
-  echo "🤘 installing personal packages..."
-  install personal
+	echo "🤘 installing personal packages..."
+	install personal
 fi
 
 if [[ $INSTALL_GAMING = "1" ]]; then
-  echo "🎮 installing gaming packages..."
-  install gaming
+	echo "🎮 installing gaming packages..."
+	install gaming
 fi
 
 if [[ $INSTALL_TOYS = "1" ]]; then
-  echo "🤡 installing toy packages..."
-  install toys
+	echo "🤡 installing toy packages..."
+	install toys
 fi
 
 # --- update lazyvim ---
-bash -c "$scriptsDir/update-lazyvim.sh"
+bash -c "$scripts_dir/update-lazyvim.sh"
 
 # --- chezmoi update ---
 echo "🥐 updating chezmoi..."
@@ -120,8 +131,12 @@ chezmoi update --force
 
 # --- update end-4 dotfiles ---
 echo "🖥️ updating end-4 dotfiles..."
-pushd ~/repos/dots-hyprland
-git stash -u || true
-git pull
-bash -c "UV_VENV_CLEAR=1 ~/repos/dots-hyprland/setup install -f --skip-sysupdate --skip-allgreeting --skip-miscconf --skip-fish --clean"
-popd
+if [[ -d "$dots_repo" && -x "$dots_setup" ]]; then
+	pushd "$dots_repo"
+	git stash -u || true
+	git pull
+	bash -c "UV_VENV_CLEAR=1 \"$dots_setup\" install -f --skip-sysupdate --skip-allgreeting --skip-miscconf --skip-fish --clean"
+	popd
+else
+	echo "⚠️ skipping end-4 dotfiles update (missing $dots_repo or $dots_setup)"
+fi

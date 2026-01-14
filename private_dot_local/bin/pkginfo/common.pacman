@@ -9,12 +9,17 @@ chromium
 cmatrix
 direnv
 dkms
+docker
+docker-compose
 drawio-desktop
 dysk
+fd
 eza
 fastfetch
 flatpak
+fzf
 git
+git-delta
 github-cli
 hunspell-de
 just
@@ -28,6 +33,9 @@ neovim
 nodejs
 npm
 obsidian
+openssh
+openai-codex
+openssl
 orage
 pandoc
 pavucontrol
@@ -38,6 +46,10 @@ python-pynvim
 python-pyperclip
 qalculate-gtk
 ripgrep
+shellcheck
+shfmt
+sshpass
+tealdeer
 thunderbird
 ttf-bitstream-vera
 ttf-crimson
@@ -48,7 +60,7 @@ ttf-opensans
 ttf-terminus-nerd
 wireplumber
 wl-clipboard
+mosh
 yazi
-zellij
 zen-browser-bin
 zoxide
