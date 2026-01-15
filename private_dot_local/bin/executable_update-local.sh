@@ -102,7 +102,7 @@ fi
 
 echo "⌨️ enabling chromium access to keychron devices..."
 sudo mkdir -p "$keychron_rules_dir"
-echo 'SUBSYSTEM=="hidraw", ATTRS{idVendor}=="3434", TAG+="uaccess"' | sudo tee "$keychron_rules_file"
+echo 'SUBSYSTEM=="hidraw", ATTRS{idVendor}=="3434", MODE+="0666"' | sudo tee "$keychron_rules_file"
 sudo udevadm control --reload-rules
 sudo udevadm trigger
 
