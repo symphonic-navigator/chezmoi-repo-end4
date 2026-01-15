@@ -131,6 +131,10 @@ if [[ $INSTALL_TOYS = "1" ]]; then
 	install toys
 fi
 
+# --- nicing ---
+echo "❤️ enabling ananicy..."
+sudo systemctl enable --now ananicy-cpp
+
 # --- sddm theme installation ---
 echo "🎨 installing sddm themes..."
 install sddm-themes
