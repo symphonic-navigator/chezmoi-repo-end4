@@ -71,7 +71,9 @@ flatpak remote-add --user --if-not-exists flathub https://flathub.org/repo/flath
 echo "🐋 installing docker..."
 sudo pacman -S --noconfirm --needed docker docker-compose
 sudo groupadd docker || true
-sudo usermod -aG docker $USER || true
+sudo usermod -aG docker "$USER" || true
+sudo systemctl enable --now docker
+echo "ℹ️ docker group change requires logout/login (or run: newgrp docker)"
 
 # --- update ---
 bash -c "$update_script"
