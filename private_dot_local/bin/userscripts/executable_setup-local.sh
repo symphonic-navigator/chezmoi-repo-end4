@@ -8,8 +8,10 @@ config_dir="$HOME/.config"
 config_name="local-system.conf"
 config_file="$config_dir/$config_name"
 update_script="$script_dir/update-local.sh"
+hf_dir="$HOME/hf"
 
 mkdir -p "$config_dir"
+mkdir -p "$hf_dir"
 
 # --- interactive functions ---
 ask() {
