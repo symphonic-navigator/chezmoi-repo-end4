@@ -67,5 +67,11 @@ sudo pacman -S --noconfirm --needed flatpak
 yay -S --noconfirm --needed pyprland
 flatpak remote-add --user --if-not-exists flathub https://flathub.org/repo/flathub.flatpakrepo
 
+# --- installing docker ---
+echo "🐋 installing docker..."
+sudo pacman -S --noconfirm --needed docker docker-compose
+sudo groupadd docker || true
+sudo usermod -aG docker $USER || true
+
 # --- update ---
 bash -c "$update_script"
