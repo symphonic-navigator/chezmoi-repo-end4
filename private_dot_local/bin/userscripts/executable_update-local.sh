@@ -20,9 +20,10 @@ journald_conf_dir="/etc/systemd/journald.conf.d"
 journald_conf_file="$journald_conf_dir/volatile.conf"
 skip_end4="0"
 sync_sources="0"
+skip_chezmoi="0"
 
 usage() {
-  echo "Usage: $0 [--quick] [--sync]"
+  echo "Usage: $0 [--quick] [--sync] [--nochezmoi]"
 }
 
 while [[ $# -gt 0 ]]; do
@@ -33,6 +34,10 @@ while [[ $# -gt 0 ]]; do
     ;;
   --sync)
     sync_sources="1"
+    shift
+    ;;
+  --nochezmoi)
+    skip_chezmoi="1"
     shift
     ;;
   -h | --help)
@@ -178,9 +183,13 @@ install sddm-themes
 bash -c "$scripts_dir/update-lazyvim.sh"
 
 # --- chezmoi update ---
-echo "🥐 updating chezmoi..."
-chezmoi add "$script_dir"
-chezmoi update --force
+if [[ $skip_chezmoi = "1" ]]; then
+  echo "⏭️ skipping chezmoi update (--nochezmoi)"
+else
+  echo "🥐 updating chezmoi..."
+  chezmoi add "$script_dir"
+  chezmoi update --force
+fi
 
 # --- update end-4 dotfiles ---
 if [[ $skip_end4 = "1" ]]; then

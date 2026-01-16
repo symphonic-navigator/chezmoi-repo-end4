@@ -15,25 +15,25 @@ mkdir -p "$hf_dir"
 
 # --- interactive functions ---
 ask() {
-	local prompt="$1"
-	local answer
-	read -r -p "$prompt [y/N]: " answer
-	if [[ "$answer" =~ ^[Yy]$ ]]; then
-		echo "1"
-	else
-		echo "0"
-	fi
+  local prompt="$1"
+  local answer
+  read -r -p "$prompt [y/N]: " answer
+  if [[ "$answer" =~ ^[Yy]$ ]]; then
+    echo "1"
+  else
+    echo "0"
+  fi
 }
 
 # --- start ---
 
 if [[ $EUID -eq 0 ]]; then
-	echo "❌ do not run this script as root or sudo"
-	exit 1
+  echo "❌ do not run this script as root or sudo"
+  exit 1
 fi
 
 if [[ -f "$config_file" ]]; then
-	rm "$config_file" || true
+  rm "$config_file" || true
 fi
 
 installPersonal=$(ask "🔒 Install personal packages (only on your personal kits)?")
@@ -41,7 +41,7 @@ installPersonal=$(ask "🔒 Install personal packages (only on your personal kit
 installGaming="0"
 
 if [[ $installPersonal = "1" ]]; then
-	installGaming=$(ask "🔒 Install gaming packages?")
+  installGaming=$(ask "🔒 Install gaming packages?")
 fi
 
 installToys=$(ask "🔒 Install extra (toy) packages?")
@@ -78,4 +78,4 @@ sudo systemctl enable --now docker
 echo "ℹ️ docker group change requires logout/login (or run: newgrp docker)"
 
 # --- update ---
-bash -c "$update_script"
+bash "$update_script" "$@"
