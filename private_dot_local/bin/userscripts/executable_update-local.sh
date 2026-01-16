@@ -18,60 +18,95 @@ keychron_rules_dir="/etc/udev/rules.d"
 keychron_rules_file="$keychron_rules_dir/99-keychron.rules"
 journald_conf_dir="/etc/systemd/journald.conf.d"
 journald_conf_file="$journald_conf_dir/volatile.conf"
+skip_end4="0"
+sync_sources="0"
+
+usage() {
+  echo "Usage: $0 [--quick] [--sync]"
+}
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+  --quick)
+    skip_end4="1"
+    shift
+    ;;
+  --sync)
+    sync_sources="1"
+    shift
+    ;;
+  -h | --help)
+    usage
+    exit 0
+    ;;
+  *)
+    echo "❌ unknown option: $1"
+    usage
+    exit 1
+    ;;
+  esac
+done
 
 # --- installers ---
 extract_packages() {
-	grep -v -E '^[[:space:]]*#|^[[:space:]]*$' "$1"
+  grep -v -E '^[[:space:]]*#|^[[:space:]]*$' "$1"
 }
 
 installPacman() {
-	local package_file
-	package_file="$pkginfo_dir/$1.pacman"
-	if [[ -f "$package_file" ]]; then
-		extract_packages "$package_file" | sudo pacman --needed --noconfirm -S -
-	fi
+  local package_file
+  package_file="$pkginfo_dir/$1.pacman"
+  if [[ -f "$package_file" ]]; then
+    extract_packages "$package_file" | sudo pacman --needed --noconfirm -S -
+  fi
 }
 
 installYay() {
-	local package_file
-	package_file="$pkginfo_dir/$1.yay"
-	if [[ -f "$package_file" ]]; then
-		extract_packages "$package_file" | yay --needed --noconfirm --removemake --answerclean All --answeredit N --answerupgrade Y -S -
-	fi
+  local package_file
+  package_file="$pkginfo_dir/$1.yay"
+  if [[ -f "$package_file" ]]; then
+    extract_packages "$package_file" | yay --needed --noconfirm --removemake --answerclean All --answeredit N --answerupgrade Y -S -
+  fi
 }
 
 installFlatpak() {
-	local package_file
-	package_file="$pkginfo_dir/$1.flatpak"
-	if [[ -f "$package_file" ]]; then
-		extract_packages "$package_file" | xargs -r flatpak install --user -y --noninteractive
-	fi
+  local package_file
+  package_file="$pkginfo_dir/$1.flatpak"
+  if [[ -f "$package_file" ]]; then
+    extract_packages "$package_file" | xargs -r flatpak install --user -y --noninteractive
+  fi
 }
 
 install() {
-	installPacman "$1"
-	installYay "$1"
-	installFlatpak "$1"
+  installPacman "$1"
+  installYay "$1"
+  installFlatpak "$1"
 }
 
 # --- start ---
 if [[ $EUID -eq 0 ]]; then
-	echo "❌ do not run this script as root or sudo"
-	exit 1
+  echo "❌ do not run this script as root or sudo"
+  exit 1
 fi
 
 if [[ ! -f "$config_file" ]]; then
-	echo "❌ configuration file is missing - please run setup-local instead"
-	exit 1
+  echo "❌ configuration file is missing - please run setup-local instead"
+  exit 1
 fi
 
 command -v yay >/dev/null || {
-	echo "❌ yay missing"
-	exit 1
+  echo "❌ yay missing"
+  exit 1
 }
 
 # shellcheck source=/dev/null
 source "$config_file"
+
+# --- package source sync ---
+if [[ $sync_sources = "1" ]]; then
+  echo "🔄 syncing package sources..."
+  sudo pacman -Sy --noconfirm || true
+  yay -Sy --noconfirm || true
+fi
 
 # --- package update ---
 echo "🌐 package update..."
@@ -91,13 +126,13 @@ echo "💽 starting SSD trimming service..."
 sudo systemctl enable fstrim.timer
 
 if hostnamectl | grep -qi 'tuxedo\|xmg\|clevo'; then
-	echo "🖥️ detected TUXEDO / XMG / Clevo hardware, installing now..."
-	install tuxedo
+  echo "🖥️ detected TUXEDO / XMG / Clevo hardware, installing now..."
+  install tuxedo
 fi
 
 if command -v inxi >/dev/null && inxi -G | grep -iq nvidia; then
-	echo "🔧 detected nvidia GPU, enabling nvidia-powerd..."
-	sudo systemctl enable --now nvidia-powerd.service
+  echo "🔧 detected nvidia GPU, enabling nvidia-powerd..."
+  sudo systemctl enable --now nvidia-powerd.service
 fi
 
 echo "⌨️ enabling chromium access to keychron devices..."
@@ -117,18 +152,18 @@ echo "🛠️ installing common packages..."
 install common
 
 if [[ $INSTALL_PERSONAL = "1" ]]; then
-	echo "🤘 installing personal packages..."
-	install personal
+  echo "🤘 installing personal packages..."
+  install personal
 fi
 
 if [[ $INSTALL_GAMING = "1" ]]; then
-	echo "🎮 installing gaming packages..."
-	install gaming
+  echo "🎮 installing gaming packages..."
+  install gaming
 fi
 
 if [[ $INSTALL_TOYS = "1" ]]; then
-	echo "🤡 installing toy packages..."
-	install toys
+  echo "🤡 installing toy packages..."
+  install toys
 fi
 
 # --- nicing ---
@@ -144,16 +179,21 @@ bash -c "$scripts_dir/update-lazyvim.sh"
 
 # --- chezmoi update ---
 echo "🥐 updating chezmoi..."
+chezmoi add "$script_dir"
 chezmoi update --force
 
 # --- update end-4 dotfiles ---
-echo "🖥️ updating end-4 dotfiles..."
-if [[ -d "$dots_repo" && -x "$dots_setup" ]]; then
-	pushd "$dots_repo"
-	git stash -u || true
-	git pull
-	bash -c "UV_VENV_CLEAR=1 \"$dots_setup\" install -f --skip-sysupdate --skip-allgreeting --skip-miscconf --skip-fish --clean"
-	popd
+if [[ $skip_end4 = "1" ]]; then
+  echo "⏭️ skipping end-4 dotfiles update (--quick)"
 else
-	echo "⚠️ skipping end-4 dotfiles update (missing $dots_repo or $dots_setup)"
+  echo "🖥️ updating end-4 dotfiles..."
+  if [[ -d "$dots_repo" && -x "$dots_setup" ]]; then
+    pushd "$dots_repo"
+    git stash -u || true
+    git pull
+    bash -c "UV_VENV_CLEAR=1 \"$dots_setup\" install -f --skip-sysupdate --skip-allgreeting --skip-miscconf --skip-fish --clean"
+    popd
+  else
+    echo "⚠️ skipping end-4 dotfiles update (missing $dots_repo or $dots_setup)"
+  fi
 fi
