@@ -50,39 +50,66 @@ if ! printf '%s\n' "${themes[@]}" | grep -qx "$current_theme"; then
 	fi
 fi
 
-if [[ ${#themes[@]} -gt 99 ]]; then
-	echo "❌ too many themes (${#themes[@]}); selector supports up to 99"
-	exit 1
+# --- Theme selection with fzf or fallback ---
+if command -v fzf >/dev/null; then
+	echo "🎨 Select SDDM theme (current: $current_theme):"
+	selected_theme=$(printf '%s\n' "${themes[@]}" | fzf \
+		--height=40% \
+		--layout=reverse \
+		--border \
+		--prompt="Theme: " \
+		--header="Enter = select, Esc = cancel" \
+		--query="" \
+		--select-1 \
+		--exit-0 \
+		--bind="enter:accept" \
+		--highlight-line \
+		--marker="*" \
+		--preview="echo 'Current: $current_theme'" \
+	) || selected_theme=""
+
+	if [[ -z "$selected_theme" ]]; then
+		echo "❌ No selection made, exiting."
+		exit 0
+	fi
+else
+	# Fallback: manual selection
+	echo "🎨 Available SDDM themes:"
+	for i in "${!themes[@]}"; do
+		marker=" "
+		if [[ "${themes[$i]}" == "$current_theme" ]]; then
+			marker="*"
+		fi
+		printf " %2d) [%s] %s\n" "$((i + 1))" "$marker" "${themes[$i]}"
+	done
+
+	printf "Select theme [Enter keeps %s]: " "$current_theme"
+	read -r choice
+
+	selected_theme="$current_theme"
+	if [[ -n "$choice" ]]; then
+		if ! [[ "$choice" =~ ^[0-9]+$ ]]; then
+			echo "❌ invalid selection: $choice"
+			exit 1
+		fi
+
+		if ((choice < 1 || choice > ${#themes[@]})); then
+			echo "❌ invalid selection: $choice"
+			exit 1
+		fi
+
+		selected_index=$((choice - 1))
+		selected_theme="${themes[$selected_index]}"
+	fi
 fi
 
-echo "🎨 available SDDM themes:"
-for i in "${!themes[@]}"; do
-	marker=" "
-	if [[ "${themes[$i]}" == "$current_theme" ]]; then
-		marker="*"
-	fi
-	printf " %2d) [%s] %s\n" "$((i + 1))" "$marker" "${themes[$i]}"
-done
-
-printf "Select theme [Enter keeps %s]: " "$current_theme"
-read -r choice
-
-selected_theme="$current_theme"
-if [[ -n "$choice" ]]; then
-	if ! [[ "$choice" =~ ^[0-9]+$ ]]; then
-		echo "❌ invalid selection: $choice"
-		exit 1
-	fi
-
-	if ((choice < 1 || choice > ${#themes[@]} || choice > 99)); then
-		echo "❌ invalid selection: $choice"
-		exit 1
-	fi
-
-	selected_index=$((choice - 1))
-	selected_theme="${themes[$selected_index]}"
+# --- Idempotency check ---
+if [[ "$selected_theme" == "$current_theme" ]]; then
+	echo "✅ Theme '$selected_theme' is already active, no change needed."
+	exit 0
 fi
 
+# --- Set theme ---
 sudo mkdir -p "$config_dir"
 printf "[Theme]\nCurrent=%s\n" "$selected_theme" | sudo tee "$config_file" >/dev/null
 

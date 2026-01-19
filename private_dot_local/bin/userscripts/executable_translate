@@ -6,7 +6,7 @@ import subprocess
 import sys
 
 
-CONFIG_DIR = os.path.join(os.path.expanduser("~"), ".config", "dict-translate")
+CONFIG_DIR = os.path.join(os.path.expanduser("~"), ".config", "translate")
 CONFIG_PATH = os.path.join(CONFIG_DIR, "config.ini")
 
 LANG_NAMES = {
@@ -56,12 +56,31 @@ def infer_direction(dict_name, overrides):
     return "direction unknown"
 
 
+def check_dictd_service():
+    try:
+        result = subprocess.run(
+            ["systemctl", "is-active", "dictd"],
+            capture_output=True,
+            text=True,
+            timeout=5
+        )
+        if result.returncode != 0:
+            print("Warning: dictd service is not running. Start with: sudo systemctl start dictd", file=sys.stderr)
+            return False
+    except (subprocess.TimeoutExpired, FileNotFoundError):
+        pass
+    return True
+
+
 def run_dict(dict_name, query):
     command = ["dict", "-d", dict_name, "--", query]
-    result = subprocess.run(command, text=True, capture_output=True)
-    if result.returncode != 0:
-        return False, result.stderr.strip() or result.stdout.strip()
-    return True, result.stdout.rstrip()
+    try:
+        result = subprocess.run(command, text=True, capture_output=True, timeout=10)
+        if result.returncode != 0:
+            return False, result.stderr.strip() or result.stdout.strip()
+        return True, result.stdout.rstrip()
+    except subprocess.TimeoutExpired:
+        return False, "Timeout: dict command took too long"
 
 
 def print_usage():
@@ -88,6 +107,8 @@ def main():
     if not dictionaries:
         print(f"No dictionaries configured in {CONFIG_PATH}", file=sys.stderr)
         return 3
+
+    check_dictd_service()
 
     for index, dict_name in enumerate(dictionaries, start=1):
         direction = infer_direction(dict_name, directions)
