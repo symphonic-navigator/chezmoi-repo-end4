@@ -39,31 +39,31 @@ usage() {
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --quick)
-      skip_end4="1"
-      shift
-      ;;
-    --nochezmoi)
-      skip_chezmoi="1"
-      shift
-      ;;
-    --verbose|-v)
-      USERSCRIPTS_VERBOSE="1"
-      shift
-      ;;
-    --dry-run)
-      USERSCRIPTS_DRY_RUN="1"
-      shift
-      ;;
-    -h|--help)
-      usage
-      exit 0
-      ;;
-    *)
-      echo "❌ Unknown option: $1"
-      usage
-      exit 1
-      ;;
+  --quick)
+    skip_end4="1"
+    shift
+    ;;
+  --nochezmoi)
+    skip_chezmoi="1"
+    shift
+    ;;
+  --verbose | -v)
+    USERSCRIPTS_VERBOSE="1"
+    shift
+    ;;
+  --dry-run)
+    USERSCRIPTS_DRY_RUN="1"
+    shift
+    ;;
+  -h | --help)
+    usage
+    exit 0
+    ;;
+  *)
+    echo "❌ Unknown option: $1"
+    usage
+    exit 1
+    ;;
   esac
 done
 
@@ -184,7 +184,26 @@ fi
 
 # --- Keychron Rules (atomic write) ---
 info "⌨️ Enabling Keychron access for Chromium..."
-keychron_rules='SUBSYSTEM=="hidraw", ATTRS{idVendor}=="3434", MODE+="0666"'
+
+GROUP="input"
+USER_NAME="${SUDO_USER:-$USER}"
+
+if ! getent group "$GROUP" >/dev/null; then
+  echo "Creating group: $GROUP"
+  groupadd "$GROUP"
+else
+  echo "Group $GROUP already exists"
+fi
+
+if id -nG "$USER_NAME" | grep -qw "$GROUP"; then
+  echo "User $USER_NAME already in group $GROUP"
+else
+  echo "Adding user $USER_NAME to group $GROUP"
+  usermod -aG "$GROUP" "$USER_NAME"
+  echo "NOTE: User must log out/in for group change to take effect"
+fi
+
+keychron_rules='SUBSYSTEM=="hidraw", ATTRS{idVendor}=="3434", MODE="0660", GROUP="input"'
 if [[ "$USERSCRIPTS_DRY_RUN" != "1" ]]; then
   sudo mkdir -p "$keychron_rules_dir"
   if atomic_write "$keychron_rules_file" "$keychron_rules" 1; then
