@@ -1,0 +1,109 @@
+#!/usr/bin/env python3
+import configparser
+import os
+import shutil
+import subprocess
+import sys
+
+
+CONFIG_DIR = os.path.join(os.path.expanduser("~"), ".config", "dict-translate")
+CONFIG_PATH = os.path.join(CONFIG_DIR, "config.ini")
+
+LANG_NAMES = {
+    "eng": "English",
+    "deu": "German",
+}
+
+
+def ensure_config():
+    if os.path.exists(CONFIG_PATH):
+        return
+    os.makedirs(CONFIG_DIR, exist_ok=True)
+    config = configparser.ConfigParser()
+    config["dictd"] = {
+        "dictionaries": "fd-eng-deu, fd-deu-eng",
+    }
+    config["directions"] = {
+        "fd-eng-deu": "English -> German",
+        "fd-deu-eng": "German -> English",
+    }
+    with open(CONFIG_PATH, "w", encoding="utf-8") as handle:
+        config.write(handle)
+
+
+def load_config():
+    ensure_config()
+    config = configparser.ConfigParser()
+    config.read(CONFIG_PATH, encoding="utf-8")
+    dicts_raw = config.get("dictd", "dictionaries", fallback="")
+    dictionaries = [item.strip() for item in dicts_raw.split(",") if item.strip()]
+    directions = {}
+    if config.has_section("directions"):
+        for key, value in config.items("directions"):
+            directions[key.strip()] = value.strip()
+    return dictionaries, directions
+
+
+def infer_direction(dict_name, overrides):
+    if dict_name in overrides:
+        return overrides[dict_name]
+    parts = dict_name.split("-")
+    if len(parts) >= 3:
+        src = parts[-2]
+        dst = parts[-1]
+        if src in LANG_NAMES and dst in LANG_NAMES:
+            return f"{LANG_NAMES[src]} -> {LANG_NAMES[dst]}"
+    return "direction unknown"
+
+
+def run_dict(dict_name, query):
+    command = ["dict", "-d", dict_name, "--", query]
+    result = subprocess.run(command, text=True, capture_output=True)
+    if result.returncode != 0:
+        return False, result.stderr.strip() or result.stdout.strip()
+    return True, result.stdout.rstrip()
+
+
+def print_usage():
+    prog = os.path.basename(sys.argv[0])
+    print(f"Usage: {prog} <word or phrase>")
+    print(f"Example: {prog} \"warp drive\"")
+
+
+def main():
+    if shutil.which("dict") is None:
+        print("Error: 'dict' command not found. Install dictd/dict client.", file=sys.stderr)
+        return 1
+
+    if len(sys.argv) < 2:
+        print_usage()
+        return 2
+
+    query = " ".join(sys.argv[1:]).strip()
+    if not query:
+        print_usage()
+        return 2
+
+    dictionaries, directions = load_config()
+    if not dictionaries:
+        print(f"No dictionaries configured in {CONFIG_PATH}", file=sys.stderr)
+        return 3
+
+    for index, dict_name in enumerate(dictionaries, start=1):
+        direction = infer_direction(dict_name, directions)
+        header = f"[{index}/{len(dictionaries)}] {dict_name} ({direction})"
+        print(header)
+        print("-" * len(header))
+        ok, output = run_dict(dict_name, query)
+        if ok:
+            print(output)
+        else:
+            print(f"Error: {output}", file=sys.stderr)
+        if index != len(dictionaries):
+            print()
+
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
