@@ -21,13 +21,13 @@ _log_file=""
 log_init() {
   local script_name="$1"
   _log_file="$USERSCRIPTS_LOG_DIR/${script_name}-$(date +%Y%m%d-%H%M%S).log"
-  echo "Log started: $(date)" >> "$_log_file"
+  echo "Log started: $(date)" >>"$_log_file"
 }
 
 log() {
   local msg="$1"
   if [[ -n "$_log_file" ]]; then
-    echo "[$(date +%H:%M:%S)] $msg" >> "$_log_file"
+    echo "[$(date +%H:%M:%S)] $msg" >>"$_log_file"
   fi
   if [[ "$USERSCRIPTS_VERBOSE" == "1" ]]; then
     echo "[DEBUG] $msg" >&2
@@ -175,7 +175,7 @@ ask() {
     fi
   else
     read -r -p "$prompt [y/N]: " answer
-    if [[ "$answer" =~ ^[Yy]$ ]]; then
+    if [[ "$answer" =~ ^[YyZz]$ ]]; then
       echo "1"
     else
       echo "0"
@@ -213,7 +213,7 @@ atomic_write() {
   if [[ "$use_sudo" == "1" ]]; then
     echo "$content" | sudo tee "$file" >/dev/null
   else
-    echo "$content" > "$file"
+    echo "$content" >"$file"
   fi
 
   log "File written: $file"
@@ -265,21 +265,21 @@ notify_done() {
 parse_common_args() {
   while [[ $# -gt 0 ]]; do
     case "$1" in
-      --verbose|-v)
-        USERSCRIPTS_VERBOSE="1"
-        shift
-        ;;
-      --dry-run)
-        USERSCRIPTS_DRY_RUN="1"
-        shift
-        ;;
-      --log)
-        shift
-        ;;
-      *)
-        echo "$1"
-        shift
-        ;;
+    --verbose | -v)
+      USERSCRIPTS_VERBOSE="1"
+      shift
+      ;;
+    --dry-run)
+      USERSCRIPTS_DRY_RUN="1"
+      shift
+      ;;
+    --log)
+      shift
+      ;;
+    *)
+      echo "$1"
+      shift
+      ;;
     esac
   done
 }
