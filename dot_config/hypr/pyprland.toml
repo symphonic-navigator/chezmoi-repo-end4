@@ -2,7 +2,7 @@
 plugins = ["scratchpads", "layout_center"]
 
 [layout_center]
-margin = 100
+margin = 75
 offset = [0, 30]
 next = "movefocus r"
 prev = "movefocus l"
@@ -43,4 +43,3 @@ command = "chromium --class='chrome-keychron-launcher' --disable-first-run-ui --
 size = "90% 90%"
 position = "5% 5%"
 class = "chrome-keychron-launcher"
-
