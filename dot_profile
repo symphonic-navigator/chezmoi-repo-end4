@@ -1,13 +1,9 @@
 # Added by Toolbox App
 export PATH="$PATH:$HOME/.local/share/JetBrains/Toolbox/scripts"
 
-# User scripts
-export PATH="$PATH:$HOME/.local/bin:$HOME/.local/bin/userscripts"
-
 # Hugging face
 export HF_HOME="$HOME/ai/hf"
 export OLLAMA_MODELS="$HOME/ai/ollama"
 
 # MangoHud
 export MANGOHUD=1
-
