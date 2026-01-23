@@ -278,6 +278,10 @@ else
   fi
 fi
 
+# --- tldr update ---
+info "📘 Updating tldr..."
+tldr --update
+
 # --- update end-4 dotfiles ---
 if [[ $skip_end4 = "1" ]]; then
   info "⏭️ end-4 dotfiles update skipped (--quick)"
