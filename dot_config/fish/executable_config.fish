@@ -83,11 +83,11 @@ if status is-interactive # Commands to run in interactive sessions can go here
         if command -v checkupdates >/dev/null 2>&1
             set -l updates (checkupdates)
             if test -n "$updates"
-                echo "Arch updates available:"
+                echo "the following packages can be updated:"
                 printf '%s\n' $updates
             end
         end
-        echo $now > $checkupdates_stamp
+        echo $now >$checkupdates_stamp
     end
 
     # No greeting
