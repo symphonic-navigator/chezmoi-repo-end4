@@ -69,6 +69,27 @@ if status is-interactive # Commands to run in interactive sessions can go here
         source ~/.local-env.fish
     end
 
+    # Check for Arch updates at most once per hour per user session start.
+    set -l checkupdates_stamp $XDG_RUNTIME_DIR/fish-checkupdates.timestamp
+    set -l now (date +%s)
+    set -l last 0
+    if test -f $checkupdates_stamp
+        set last (cat $checkupdates_stamp)
+    end
+    if not string match -qr '^[0-9]+$' -- $last
+        set last 0
+    end
+    if test (math $now - $last) -ge 3600
+        if command -v checkupdates >/dev/null 2>&1
+            set -l updates (checkupdates)
+            if test -n "$updates"
+                echo "Arch updates available:"
+                printf '%s\n' $updates
+            end
+        end
+        echo $now > $checkupdates_stamp
+    end
+
     # No greeting
     set fish_greeting
 
