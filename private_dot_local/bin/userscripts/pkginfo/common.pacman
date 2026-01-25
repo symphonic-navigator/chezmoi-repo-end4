@@ -1,9 +1,11 @@
 ananicy-cpp
+atuin
 bat
 bind
 bitwarden
 bpytop
 brightnessctl
+btop
 cava
 chezmoi
 chromium
@@ -30,6 +32,7 @@ kate
 kitty
 konsole
 kolourpaint
+lazygit
 libreoffice-fresh
 linux-headers
 neovim
@@ -40,7 +43,7 @@ openssh
 openai-codex
 openssl
 orage
-pandoc
+pandoc-cli
 pavucontrol
 piper
 python-dbus
