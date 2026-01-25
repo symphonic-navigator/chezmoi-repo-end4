@@ -42,16 +42,18 @@ fi
 # --- Options ---
 skip_end4="0"
 skip_chezmoi="0"
+force_update="0"
 
 usage() {
   echo "Usage: $0 [--quick] [--nochezmoi] [--verbose|-v] [--dry-run] [--help]"
   echo ""
   echo "Options:"
-  echo "  --quick       Skip end-4 dotfiles update"
-  echo "  --nochezmoi   Skip chezmoi update"
-  echo "  --verbose,-v  Enable verbose output"
-  echo "  --dry-run     Don't make changes (simulation)"
-  echo "  --help,-h     Show this help"
+  echo "  --quick         Skip end-4 dotfiles update"
+  echo "  --nochezmoi     Skip chezmoi update"
+  echo "  --force-update  Forces update via pacman and yay"
+  echo "  --verbose,-v    Enable verbose output"
+  echo "  --dry-run       Don't make changes (simulation)"
+  echo "  --help,-h       Show this help"
 }
 
 while [[ $# -gt 0 ]]; do
@@ -66,6 +68,10 @@ while [[ $# -gt 0 ]]; do
     ;;
   --verbose | -v)
     USERSCRIPTS_VERBOSE="1"
+    shift
+    ;;
+  --force-update)
+    force_update="1"
     shift
     ;;
   --dry-run)
@@ -95,6 +101,20 @@ if [[ ! -f "$config_file" ]]; then
 fi
 
 command -v yay >/dev/null || die "yay missing"
+command -v checkupdates >/dev/null || die "checkupdates missing"
+
+requires_pacman_updates=false
+requires_yay_updates=false
+
+if checkupdates >/dev/null 2>&1; then
+  requires_pacman_updates=true
+  echo "⚙️ requires pacman updates"
+fi
+
+if yay -Qua >/dev/null 2>&1; then
+  requires_yay_updates=true
+  echo "⚙️ requires yay updates"
+fi
 
 # shellcheck source=/dev/null
 source "$config_file"
@@ -160,14 +180,23 @@ install() {
 # --- package update ---
 info "🌐 Package update..."
 if [[ "$USERSCRIPTS_DRY_RUN" != "1" ]]; then
-  sudo pacman -Syu --noconfirm || {
-    log "Pacman update had errors"
-    warn "Pacman update not fully completed"
-  }
-  yay -Syu --noconfirm || {
-    log "Yay update had errors"
-    warn "Yay update not fully completed"
-  }
+  if $requires_pacman_updates; then
+    sudo pacman -Syu --noconfirm || {
+      log "Pacman update had errors"
+      warn "Pacman update not fully completed"
+    }
+  else
+    echo "✅ no pacman updates required"
+  fi
+
+  if $requires_yay_updates; then
+    yay -Syu --noconfirm || {
+      log "Yay update had errors"
+      warn "Yay update not fully completed"
+    }
+  else
+    echo "✅ no yay updates required"
+  fi
 else
   echo "[DRY-RUN] pacman -Syu"
   echo "[DRY-RUN] yay -Syu"
