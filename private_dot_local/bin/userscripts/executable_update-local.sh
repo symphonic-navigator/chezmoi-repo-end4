@@ -22,6 +22,23 @@ keychron_rules_file="$keychron_rules_dir/99-keychron.rules"
 journald_conf_dir="/etc/systemd/journald.conf.d"
 journald_conf_file="$journald_conf_dir/volatile.conf"
 
+# --- System detection ---
+. /etc/os-release
+
+is_cachyos=false
+
+if [[ "${ID:-}" == "cachyos" ]]; then
+  is_cachyos=true
+elif [[ " ${ID_LIKE:-} " == *" cachyos "* ]]; then
+  is_cachyos=true
+fi
+
+if $is_cachyos; then
+  echo "🤩 CachyOS detected!"
+else
+  echo "🖥️ system detected: ${ID:-}"
+fi
+
 # --- Options ---
 skip_end4="0"
 skip_chezmoi="0"
@@ -247,6 +264,11 @@ fi
 if [[ "${INSTALL_GAMING:-0}" = "1" ]]; then
   info "🎮 Installing gaming packages..."
   install gaming
+
+  if $is_cachyos; then
+    echo "🤩 CachyOS detected - installing cachyos-gaming-meta..."
+    sudo pacman -S --needed cachyos-gaming-meta
+  fi
 fi
 
 if [[ "${INSTALL_TOYS:-0}" = "1" ]]; then
