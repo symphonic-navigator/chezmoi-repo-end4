@@ -69,6 +69,9 @@ if status is-interactive # Commands to run in interactive sessions can go here
         echo
     end
 
+    # 6. System helpers
+    alias reload="source ~/.config/fish/config.fish"
+
     # chezmoi helpers
     function cea --description "chezmoi edit + apply + reload"
         chezmoi edit $argv && chezmoi apply && hyprctl reload
