@@ -112,12 +112,8 @@ if status is-interactive # Commands to run in interactive sessions can go here
         set last 0
     end
     if test (math $now - $last) -ge 3600
-        if command -v checkupdates >/dev/null 2>&1
-            set -l updates (checkupdates)
-            if test -n "$updates"
-                echo "the following packages can be updated:"
-                printf '%s\n' $updates
-            end
+        if command -v update-checker >/dev/null 2>&1
+            update-checker
         end
         echo $now >$checkupdates_stamp
     end
