@@ -9,7 +9,7 @@ end
 if status is-interactive # Commands to run in interactive sessions can go here
 
     # 1. Environment Variables
-    set -gx PATH $HOME/bin $HOME/.local/bin /usr/local/bin $PATH $HOME/.dotnet/tools
+    set -gx PATH $HOME/bin $HOME/.local/bin /usr/local/bin $PATH $HOME/.dotnet/tools $PATH $HOME/.npm-global/bin
     set -gx EDITOR nvim
     set -gx LANG en_US.UTF-8
     set -gx SSH_AUTH_SOCK $XDG_RUNTIME_DIR/ssh-agent.socket
@@ -39,6 +39,35 @@ if status is-interactive # Commands to run in interactive sessions can go here
     abbr -a wlc wl-copy
     abbr -a wlp wl-paste
     abbr -a l ls -l --icons
+
+    # 5. Password functions
+    function pw-alpha -d "generates a simple alphanumeric password"
+        set -l length 43
+        if test (count $argv) -gt 0
+            set length $argv[1]
+        end
+
+        # 1,6× so viele Bytes wie nötig → mehr als genug Entropie für die Filterung
+        set -l bytes (math "ceil($length * 5 / 4) + 8")
+
+        openssl rand -base64 $bytes \
+            | tr -d '+/=' \
+            | tr -cd '[:alnum:]' \
+            | head -c $length
+        echo
+    end
+
+    function pw-hex -d "generates a hexadecimal password"
+        set -l length 32
+        if test (count $argv) -gt 0
+            set length $argv[1]
+        end
+
+        set -l bytes (math "ceil($length / 2)")
+
+        openssl rand -hex $bytes
+        echo
+    end
 
     # chezmoi helpers
     function cea --description "chezmoi edit + apply + reload"
