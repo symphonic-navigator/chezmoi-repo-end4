@@ -113,7 +113,7 @@ if status is-interactive # Commands to run in interactive sessions can go here
     end
     if test (math $now - $last) -ge 3600
         if command -v update-checker >/dev/null 2>&1
-            update-checker
+            update-checker --update
         end
         echo $now >$checkupdates_stamp
     end
