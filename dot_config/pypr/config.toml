@@ -9,37 +9,46 @@ prev = "movefocus l"
 next2 = "movefocus d"
 prev2 = "movefocus u"
 
-[scratchpads.defaults]
-excludes = "*"
+[scratchpads.pavucontrol]
+command = "pavucontrol"
+size = "60% 40%"
+position = "20% 30%"
+class = "org.pulseaudio.pavucontrol"
+excludes = ["*"]
 restore_excluded = false
 lazy = false
 alt_toggle = true
 multi = false
 
-[scratchpads.pavucontrol]
-use = "defaults"
-command = "pavucontrol"
-size = "60% 40%"
-position = "20% 30%"
-class = "org.pulseaudio.pavucontrol"
-
 [scratchpads.qalculate]
-use = "defaults"
 command = "qalculate-gtk"
 size = "40% 40%"
 position = "30% 30%"
 class = "qalculate-gtk"
+excludes = ["*"]
+restore_excluded = false
+lazy = false
+alt_toggle = true
+multi = false
 
 [scratchpads.orage]
-use = "defaults"
 command = "orage"
 size = "30% 30%"
 position = "35% 35%"
 class = "orage"
+excludes = ["*"]
+restore_excluded = false
+lazy = false
+alt_toggle = true
+multi = false
 
 [scratchpads.keychron]
-use = "defaults"
 command = "chromium --class='chrome-keychron-launcher' --disable-first-run-ui --disable-default-browser-promo https://launcher.keychron.com"
 size = "90% 90%"
 position = "5% 5%"
 class = "chrome-keychron-launcher"
+excludes = ["*"]
+restore_excluded = false
+lazy = false
+alt_toggle = true
+multi = false
