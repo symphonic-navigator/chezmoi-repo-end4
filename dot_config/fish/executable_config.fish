@@ -39,6 +39,7 @@ if status is-interactive # Commands to run in interactive sessions can go here
     abbr -a wlc wl-copy
     abbr -a wlp wl-paste
     abbr -a l ls -l --icons
+    abbr -a claude claude --dangerously-skip-permissions
 
     # 5. Password functions
     function pw-alpha -d "generates a simple alphanumeric password"
