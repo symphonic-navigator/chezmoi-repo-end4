@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+if [[ $# -ne 1 ]]; then
+    echo "Usage: peek <file>" >&2
+    exit 1
+fi
+
+file="$1"
+
+if [[ ! -f "$file" ]]; then
+    echo "peek: '$file': no such file" >&2
+    exit 1
+fi
+
+is_markdown() {
+    local ext="${1##*.}"
+    case "${ext,,}" in
+        md|markdown|mdx) return 0 ;;
+    esac
+
+    local mime
+    mime=$(file --brief --mime-type "$1" 2>/dev/null)
+    [[ "$mime" == "text/markdown" ]]
+}
+
+if is_markdown "$file"; then
+    glow -p "$file"
+else
+    bat "$file"
+fi

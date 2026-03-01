@@ -305,6 +305,19 @@ if [[ "${INSTALL_TOYS:-0}" = "1" ]]; then
   install toys
 fi
 
+# --- Set Vivaldi as default browser ---
+info "🌐 Setting Vivaldi as default browser..."
+if [[ "$USERSCRIPTS_DRY_RUN" != "1" ]]; then
+  if command -v vivaldi-stable >/dev/null 2>&1 || command -v vivaldi >/dev/null 2>&1; then
+    xdg-settings set default-web-browser vivaldi-stable.desktop
+    info "✅ Vivaldi set as default browser"
+  else
+    warn "Vivaldi binary not found, skipping default browser setup"
+  fi
+else
+  echo "[DRY-RUN] xdg-settings set default-web-browser vivaldi-stable.desktop"
+fi
+
 # --- nicing ---
 info "❤️ Enabling ananicy..."
 sudo_cmd systemctl enable --now ananicy-cpp
