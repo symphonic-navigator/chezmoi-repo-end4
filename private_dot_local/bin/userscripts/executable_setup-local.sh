@@ -17,22 +17,22 @@ hf_dir="$HOME/hf"
 remaining_args=()
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --verbose|-v)
-      USERSCRIPTS_VERBOSE="1"
-      shift
-      ;;
-    --dry-run)
-      USERSCRIPTS_DRY_RUN="1"
-      shift
-      ;;
-    -h|--help)
-      echo "Usage: $0 [--verbose|-v] [--dry-run] [--help]"
-      exit 0
-      ;;
-    *)
-      remaining_args+=("$1")
-      shift
-      ;;
+  --verbose | -v)
+    USERSCRIPTS_VERBOSE="1"
+    shift
+    ;;
+  --dry-run)
+    USERSCRIPTS_DRY_RUN="1"
+    shift
+    ;;
+  -h | --help)
+    echo "Usage: $0 [--verbose|-v] [--dry-run] [--help]"
+    exit 0
+    ;;
+  *)
+    remaining_args+=("$1")
+    shift
+    ;;
   esac
 done
 set -- "${remaining_args[@]}"
@@ -104,21 +104,21 @@ installToys=$(ask "🤡 Install extra (toy) packages?")
   echo "INSTALL_PERSONAL=$installPersonal"
   echo "INSTALL_GAMING=$installGaming"
   echo "INSTALL_TOYS=$installToys"
-} > "$config_file"
+} >"$config_file"
 
 info "✅ Configuration saved: $config_file"
 
 # --- ssh agent ---
-info "🔑 Setting up ssh-agent..."
+#info "🔑 Setting up ssh-agent..."
 
-systemctl --user daemon-reload
-systemctl --user daemon-reexec
+#systemctl --user daemon-reload
+#systemctl --user daemon-reexec
 
-systemctl --user enable --now ssh-agent.service
+#systemctl --user enable --now ssh-agent.service
 
-loginctl enable-linger "$USER"
+#loginctl enable-linger "$USER"
 
-info "✅ ssh-agent user service set up and running."
+#info "✅ ssh-agent user service set up and running."
 
 # --- prerequisites ---
 info "❕ Installing prerequisites..."

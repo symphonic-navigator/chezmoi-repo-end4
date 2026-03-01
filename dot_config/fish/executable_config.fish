@@ -12,7 +12,7 @@ if status is-interactive # Commands to run in interactive sessions can go here
     set -gx PATH $HOME/bin $HOME/.local/bin /usr/local/bin $PATH $HOME/.dotnet/tools $PATH $HOME/.npm-global/bin
     set -gx EDITOR nvim
     set -gx LANG en_US.UTF-8
-    set -gx SSH_AUTH_SOCK $XDG_RUNTIME_DIR/ssh-agent.socket
+    #    set -gx SSH_AUTH_SOCK $XDG_RUNTIME_DIR/ssh-agent.socket
 
     # 2. Starship Prompt (must come early)
     if command -v starship >/dev/null 2>&1
