@@ -1,0 +1,269 @@
+definitionsdatei,mod,key,bind_flags,dispatcher_params,beschreibung
+hyprland/keybinds.conf,Super,Super_L,i,"global, quickshell:searchToggleRelease",Toggle search
+hyprland/keybinds.conf,Super,Super_R,i,"global, quickshell:searchToggleRelease",Toggle search
+hyprland/keybinds.conf,Super,Super_L,,"exec, qs -c ii ipc call TEST_ALIVE || pkill fuzzel || fuzzel",Launcher (fallback)
+hyprland/keybinds.conf,Super,Super_R,,"exec, qs -c ii ipc call TEST_ALIVE || pkill fuzzel || fuzzel",Launcher (fallback)
+hyprland/keybinds.conf,Super,catchall,itn,"global, quickshell:searchToggleReleaseInterrupt",
+hyprland/keybinds.conf,Ctrl,Super_L,,"global, quickshell:searchToggleReleaseInterrupt",
+hyprland/keybinds.conf,Ctrl,Super_R,,"global, quickshell:searchToggleReleaseInterrupt",
+hyprland/keybinds.conf,Super,mouse:272,,"global, quickshell:searchToggleReleaseInterrupt",
+hyprland/keybinds.conf,Super,mouse:273,,"global, quickshell:searchToggleReleaseInterrupt",
+hyprland/keybinds.conf,Super,mouse:274,,"global, quickshell:searchToggleReleaseInterrupt",
+hyprland/keybinds.conf,Super,mouse:275,,"global, quickshell:searchToggleReleaseInterrupt",
+hyprland/keybinds.conf,Super,mouse:276,,"global, quickshell:searchToggleReleaseInterrupt",
+hyprland/keybinds.conf,Super,mouse:277,,"global, quickshell:searchToggleReleaseInterrupt",
+hyprland/keybinds.conf,Super,mouse_up,,"global, quickshell:searchToggleReleaseInterrupt",
+hyprland/keybinds.conf,Super,mouse_down,,"global, quickshell:searchToggleReleaseInterrupt",
+hyprland/keybinds.conf,,Super_L,it,"global, quickshell:workspaceNumber",
+hyprland/keybinds.conf,,Super_R,it,"global, quickshell:workspaceNumber",
+hyprland/keybinds.conf,Super,Tab,,"global, quickshell:overviewWorkspacesToggle",Toggle overview
+hyprland/keybinds.conf,Super,Period,,"global, quickshell:overviewEmojiToggle",Emoji >> clipboard
+hyprland/keybinds.conf,Alt+Super,A,,"global, quickshell:sidebarLeftToggleDetach",
+hyprland/keybinds.conf,Super,N,,"global, quickshell:sidebarRightToggle",Toggle right sidebar
+hyprland/keybinds.conf,Super,Slash,,"global, quickshell:cheatsheetToggle",Toggle cheatsheet
+hyprland/keybinds.conf,Super,M,,"global, quickshell:mediaControlsToggle",Toggle media controls
+hyprland/keybinds.conf,Super,G,,"global, quickshell:overlayToggle",Toggle overlay
+hyprland/keybinds.conf,Ctrl+Alt,Delete,,"global, quickshell:sessionToggle",Toggle session menu
+hyprland/keybinds.conf,Super,J,,"global, quickshell:barToggle",Toggle bar
+hyprland/keybinds.conf,Ctrl+Alt,Delete,,"exec, qs -c ii ipc call TEST_ALIVE || pkill wlogout || wlogout -p layer-shell",Session menu (fallback)
+hyprland/keybinds.conf,Alt+Shift+Super,Slash,,"exec, qs -p ~/.config/quickshell/ii/welcome.qml",Launch welcome app
+hyprland/keybinds.conf,,XF86MonBrightnessUp,le,"exec, qs -c ii ipc call brightness increment || brightnessctl s 5%+",
+hyprland/keybinds.conf,,XF86MonBrightnessDown,le,"exec, qs -c ii ipc call brightness decrement || brightnessctl s 5%-",
+hyprland/keybinds.conf,,XF86AudioRaiseVolume,le,"exec, wpctl set-volume @DEFAULT_AUDIO_SINK@ 2%+ -l 1.5",
+hyprland/keybinds.conf,,XF86AudioLowerVolume,le,"exec, wpctl set-volume @DEFAULT_AUDIO_SINK@ 2%-",
+hyprland/keybinds.conf,,XF86AudioMute,l,"exec, wpctl set-mute @DEFAULT_SINK@ toggle",
+hyprland/keybinds.conf,Shift+Super,M,l,"exec, wpctl set-mute @DEFAULT_SINK@ toggle",Toggle mute
+hyprland/keybinds.conf,Alt,XF86AudioMute,l,"exec, wpctl set-mute @DEFAULT_SOURCE@ toggle",
+hyprland/keybinds.conf,,XF86AudioMicMute,l,"exec, wpctl set-mute @DEFAULT_SOURCE@ toggle",
+hyprland/keybinds.conf,Alt+Super,M,l,"exec, wpctl set-mute @DEFAULT_SOURCE@ toggle",Toggle mic
+hyprland/keybinds.conf,Ctrl+Super,T,,"global, quickshell:wallpaperSelectorToggle",Wallpaper selector
+hyprland/keybinds.conf,Ctrl+Alt+Super,T,,"global, quickshell:wallpaperSelectorRandom",Random wallpaper
+hyprland/keybinds.conf,Ctrl+Super,T,,"exec, qs -c ii ipc call TEST_ALIVE || ~/.config/quickshell/ii/scripts/colors/switchwall.sh",Change wallpaper (fallback)
+hyprland/keybinds.conf,Ctrl+Super,R,,"exec, killall ags agsv1 gjs ydotool qs quickshell; qs -c ii &",Restart widgets
+hyprland/keybinds.conf,Ctrl+Super,P,,"global, quickshell:panelFamilyCycle",Cycle panel family
+hyprland/keybinds.conf,Super,Period,,"exec, qs -c ii ipc call TEST_ALIVE || pkill fuzzel || ~/.config/hypr/hyprland/scripts/fuzzel-emoji.sh copy",Emoji >> clipboard (fallback)
+hyprland/keybinds.conf,Shift+Super,S,,"global, quickshell:regionScreenshot",Screen snip
+hyprland/keybinds.conf,Shift+Super,S,,"exec, qs -c ii ipc call TEST_ALIVE || pidof slurp || hyprshot --freeze --clipboard-only --mode region --silent",Screen snip (fallback)
+hyprland/keybinds.conf,Shift+Super,X,,"global, quickshell:regionOcr",Character recognition >> clipboard
+hyprland/keybinds.conf,Shift+Super,T,,"global, quickshell:regionOcr",
+hyprland/keybinds.conf,Shift+Super,X,,"exec, qs -c ii ipc call TEST_ALIVE || pidof slurp || grim -g ""$(slurp $SLURP_ARGS)"" ""/tmp/ocr_image.png"" && tesseract ""/tmp/ocr_image.png"" stdout -l $(tesseract --list-langs | awk 'NR>1{print $1}' | tr '\\n' '+' | sed 's/\\+$/\\n/') | wl-copy && rm ""/tmp/ocr_image.png""",
+hyprland/keybinds.conf,Shift+Super,T,,"exec, qs -c ii ipc call TEST_ALIVE || pidof slurp || grim -g ""$(slurp $SLURP_ARGS)"" ""/tmp/ocr_image.png"" && tesseract ""/tmp/ocr_image.png"" stdout -l $(tesseract --list-langs | awk 'NR>1{print $1}' | tr '\\n' '+' | sed 's/\\+$/\\n/') | wl-copy && rm ""/tmp/ocr_image.png""",
+hyprland/keybinds.conf,Shift+Super,R,l,"global, quickshell:regionRecord",Record region (no sound)
+hyprland/keybinds.conf,Shift+Super,R,l,"exec, qs -c ii ipc call TEST_ALIVE || ~/.config/quickshell/ii/scripts/videos/record.sh",Record region (no sound) (fallback)
+hyprland/keybinds.conf,Alt+Super,R,l,"global, quickshell:regionRecord",Record region (no sound)
+hyprland/keybinds.conf,Alt+Super,R,l,"exec, qs -c ii ipc call TEST_ALIVE || ~/.config/quickshell/ii/scripts/videos/record.sh",Record region (no sound) (fallback)
+hyprland/keybinds.conf,Ctrl+Alt,R,l,"exec, ~/.config/quickshell/ii/scripts/videos/record.sh --fullscreen",Record screen (no sound)
+hyprland/keybinds.conf,Alt+Shift+Super,R,l,"exec, ~/.config/quickshell/ii/scripts/videos/record.sh --fullscreen --sound",Record screen (with sound)
+hyprland/keybinds.conf,Alt+Shift+Super,mouse:273,,"exec, ~/.config/hypr/hyprland/scripts/ai/primary-buffer-query.sh",AI summary for selected text
+hyprland/keybinds.conf,Super,mouse:272,,movewindow,Move
+hyprland/keybinds.conf,Super,mouse:274,,movewindow,
+hyprland/keybinds.conf,Super,mouse:273,,resizewindow,Resize
+hyprland/keybinds.conf,Super,BracketLeft,,"movefocus, l",
+hyprland/keybinds.conf,Super,BracketRight,,"movefocus, r",
+hyprland/keybinds.conf,Shift+Super,Left,,"movewindow, l",
+hyprland/keybinds.conf,Shift+Super,Right,,"movewindow, r",
+hyprland/keybinds.conf,Shift+Super,Up,,"movewindow, u",
+hyprland/keybinds.conf,Shift+Super,Down,,"movewindow, d",
+hyprland/keybinds.conf,Alt,F4,,killactive,Close (Windows)
+hyprland/keybinds.conf,Super,Q,,killactive,Close
+hyprland/keybinds.conf,Alt+Shift+Super,Q,,"exec, hyprctl kill",Forcefully zap a window
+hyprland/keybinds.conf,Super,Semicolon,e,"splitratio, -0.1",
+hyprland/keybinds.conf,Super,Apostrophe,e,"splitratio, +0.1",
+hyprland/keybinds.conf,Alt+Super,Space,,togglefloating,Float/Tile
+hyprland/keybinds.conf,Super,D,,"fullscreen, 1",Maximize
+hyprland/keybinds.conf,Super,F,,"fullscreen, 0",Fullscreen
+hyprland/keybinds.conf,Alt+Super,F,,"fullscreenstate, 0 3",Fullscreen spoof
+hyprland/keybinds.conf,Alt+Super,code:10,,"exec, ~/.config/hypr/hyprland/scripts/workspace_action.sh movetoworkspacesilent 1",
+hyprland/keybinds.conf,Alt+Super,code:11,,"exec, ~/.config/hypr/hyprland/scripts/workspace_action.sh movetoworkspacesilent 2",
+hyprland/keybinds.conf,Alt+Super,code:12,,"exec, ~/.config/hypr/hyprland/scripts/workspace_action.sh movetoworkspacesilent 3",
+hyprland/keybinds.conf,Alt+Super,code:13,,"exec, ~/.config/hypr/hyprland/scripts/workspace_action.sh movetoworkspacesilent 4",
+hyprland/keybinds.conf,Alt+Super,code:14,,"exec, ~/.config/hypr/hyprland/scripts/workspace_action.sh movetoworkspacesilent 5",
+hyprland/keybinds.conf,Alt+Super,code:15,,"exec, ~/.config/hypr/hyprland/scripts/workspace_action.sh movetoworkspacesilent 6",
+hyprland/keybinds.conf,Alt+Super,code:16,,"exec, ~/.config/hypr/hyprland/scripts/workspace_action.sh movetoworkspacesilent 7",
+hyprland/keybinds.conf,Alt+Super,code:17,,"exec, ~/.config/hypr/hyprland/scripts/workspace_action.sh movetoworkspacesilent 8",
+hyprland/keybinds.conf,Alt+Super,code:18,,"exec, ~/.config/hypr/hyprland/scripts/workspace_action.sh movetoworkspacesilent 9",
+hyprland/keybinds.conf,Alt+Super,code:19,,"exec, ~/.config/hypr/hyprland/scripts/workspace_action.sh movetoworkspacesilent 10",
+hyprland/keybinds.conf,Alt+Super,code:87,,"exec, ~/.config/hypr/hyprland/scripts/workspace_action.sh movetoworkspacesilent 1",
+hyprland/keybinds.conf,Alt+Super,code:88,,"exec, ~/.config/hypr/hyprland/scripts/workspace_action.sh movetoworkspacesilent 2",
+hyprland/keybinds.conf,Alt+Super,code:89,,"exec, ~/.config/hypr/hyprland/scripts/workspace_action.sh movetoworkspacesilent 3",
+hyprland/keybinds.conf,Alt+Super,code:83,,"exec, ~/.config/hypr/hyprland/scripts/workspace_action.sh movetoworkspacesilent 4",
+hyprland/keybinds.conf,Alt+Super,code:84,,"exec, ~/.config/hypr/hyprland/scripts/workspace_action.sh movetoworkspacesilent 5",
+hyprland/keybinds.conf,Alt+Super,code:85,,"exec, ~/.config/hypr/hyprland/scripts/workspace_action.sh movetoworkspacesilent 6",
+hyprland/keybinds.conf,Alt+Super,code:79,,"exec, ~/.config/hypr/hyprland/scripts/workspace_action.sh movetoworkspacesilent 7",
+hyprland/keybinds.conf,Alt+Super,code:80,,"exec, ~/.config/hypr/hyprland/scripts/workspace_action.sh movetoworkspacesilent 8",
+hyprland/keybinds.conf,Alt+Super,code:81,,"exec, ~/.config/hypr/hyprland/scripts/workspace_action.sh movetoworkspacesilent 9",
+hyprland/keybinds.conf,Alt+Super,code:90,,"exec, ~/.config/hypr/hyprland/scripts/workspace_action.sh movetoworkspacesilent 10",
+hyprland/keybinds.conf,Shift+Super,mouse_down,,"movetoworkspace, r-1",
+hyprland/keybinds.conf,Shift+Super,mouse_up,,"movetoworkspace, r+1",
+hyprland/keybinds.conf,Alt+Super,mouse_down,,"movetoworkspace, -1",
+hyprland/keybinds.conf,Alt+Super,mouse_up,,"movetoworkspace, +1",
+hyprland/keybinds.conf,Alt+Super,Page_Down,,"movetoworkspace, +1",
+hyprland/keybinds.conf,Alt+Super,Page_Up,,"movetoworkspace, -1",
+hyprland/keybinds.conf,Shift+Super,Page_Down,,"movetoworkspace, r+1",
+hyprland/keybinds.conf,Shift+Super,Page_Up,,"movetoworkspace, r-1",
+hyprland/keybinds.conf,Ctrl+Shift+Super,Right,,"movetoworkspace, r+1",
+hyprland/keybinds.conf,Ctrl+Shift+Super,Left,,"movetoworkspace, r-1",
+hyprland/keybinds.conf,Ctrl+Super,S,,togglespecialworkspace,
+hyprland/keybinds.conf,Super,code:10,,"exec, ~/.config/hypr/hyprland/scripts/workspace_action.sh workspace 1",
+hyprland/keybinds.conf,Super,code:11,,"exec, ~/.config/hypr/hyprland/scripts/workspace_action.sh workspace 2",
+hyprland/keybinds.conf,Super,code:12,,"exec, ~/.config/hypr/hyprland/scripts/workspace_action.sh workspace 3",
+hyprland/keybinds.conf,Super,code:13,,"exec, ~/.config/hypr/hyprland/scripts/workspace_action.sh workspace 4",
+hyprland/keybinds.conf,Super,code:14,,"exec, ~/.config/hypr/hyprland/scripts/workspace_action.sh workspace 5",
+hyprland/keybinds.conf,Super,code:15,,"exec, ~/.config/hypr/hyprland/scripts/workspace_action.sh workspace 6",
+hyprland/keybinds.conf,Super,code:16,,"exec, ~/.config/hypr/hyprland/scripts/workspace_action.sh workspace 7",
+hyprland/keybinds.conf,Super,code:17,,"exec, ~/.config/hypr/hyprland/scripts/workspace_action.sh workspace 8",
+hyprland/keybinds.conf,Super,code:18,,"exec, ~/.config/hypr/hyprland/scripts/workspace_action.sh workspace 9",
+hyprland/keybinds.conf,Super,code:19,,"exec, ~/.config/hypr/hyprland/scripts/workspace_action.sh workspace 10",
+hyprland/keybinds.conf,Super,code:87,p,"exec, ~/.config/hypr/hyprland/scripts/workspace_action.sh workspace 1",
+hyprland/keybinds.conf,Super,code:88,p,"exec, ~/.config/hypr/hyprland/scripts/workspace_action.sh workspace 2",
+hyprland/keybinds.conf,Super,code:89,p,"exec, ~/.config/hypr/hyprland/scripts/workspace_action.sh workspace 3",
+hyprland/keybinds.conf,Super,code:83,p,"exec, ~/.config/hypr/hyprland/scripts/workspace_action.sh workspace 4",
+hyprland/keybinds.conf,Super,code:84,p,"exec, ~/.config/hypr/hyprland/scripts/workspace_action.sh workspace 5",
+hyprland/keybinds.conf,Super,code:85,p,"exec, ~/.config/hypr/hyprland/scripts/workspace_action.sh workspace 6",
+hyprland/keybinds.conf,Super,code:79,p,"exec, ~/.config/hypr/hyprland/scripts/workspace_action.sh workspace 7",
+hyprland/keybinds.conf,Super,code:80,p,"exec, ~/.config/hypr/hyprland/scripts/workspace_action.sh workspace 8",
+hyprland/keybinds.conf,Super,code:81,p,"exec, ~/.config/hypr/hyprland/scripts/workspace_action.sh workspace 9",
+hyprland/keybinds.conf,Super,code:90,p,"exec, ~/.config/hypr/hyprland/scripts/workspace_action.sh workspace 10",
+hyprland/keybinds.conf,Ctrl+Alt+Super,Right,,"workspace, m+1",
+hyprland/keybinds.conf,Ctrl+Alt+Super,Left,,"workspace, m-1",
+hyprland/keybinds.conf,Super,Page_Down,,"workspace, +1",
+hyprland/keybinds.conf,Super,Page_Up,,"workspace, -1",
+hyprland/keybinds.conf,Ctrl+Super,Page_Down,,"workspace, r+1",
+hyprland/keybinds.conf,Ctrl+Super,Page_Up,,"workspace, r-1",
+hyprland/keybinds.conf,Super,mouse_up,,"workspace, +1",
+hyprland/keybinds.conf,Super,mouse_down,,"workspace, -1",
+hyprland/keybinds.conf,Ctrl+Super,mouse_up,,"workspace, r+1",
+hyprland/keybinds.conf,Ctrl+Super,mouse_down,,"workspace, r-1",
+hyprland/keybinds.conf,Super,mouse:275,,togglespecialworkspace,
+hyprland/keybinds.conf,Ctrl+Super,BracketLeft,,"workspace, -1",
+hyprland/keybinds.conf,Ctrl+Super,BracketRight,,"workspace, +1",
+hyprland/keybinds.conf,Alt+Super,F1,,"exec, notify-send 'Entered Virtual Machine submap' 'Keybinds disabled. Hit Super+Alt+F1 to escape' -a 'Hyprland' && hyprctl dispatch submap virtual-machine",Disable keybinds
+hyprland/keybinds.conf,Alt+Super,F1,,"exec, notify-send 'Exited Virtual Machine submap' 'Keybinds re-enabled' -a 'Hyprland' && hyprctl dispatch submap global",
+hyprland/keybinds.conf,Alt+Super,f11,,"exec, bash -c 'RANDOM_IMAGE=$(find ~/Pictures -type f | grep -v -i ""nipple"" | grep -v -i ""pussy"" | shuf -n 1); ACTION=$(notify-send ""Test notification with body image"" ""This notification should contain your user account <b>image</b> and <a href=\""https://discord.com/app\"">Discord</a> <b>icon</b>. Oh and here is a random image in your Pictures folder: <img src=\""$RANDOM_IMAGE\"" alt=\""Testing image\""/>"" -a ""Hyprland keybind"" -p -h ""string:image-path:/var/lib/AccountsService/icons/chris"" -t 6000 -i ""discord"" -A ""openImage=Profile image"" -A ""action2=Open the random image"" -A ""action3=Useless button""); [[ $ACTION == *openImage ]] && xdg-open ""/var/lib/AccountsService/icons/chris""; [[ $ACTION == *action2 ]] && xdg-open \""$RANDOM_IMAGE\""'",
+hyprland/keybinds.conf,Alt+Super,f12,,"exec, bash -c 'RANDOM_IMAGE=$(find ~/Pictures -type f | grep -v -i ""nipple"" | grep -v -i ""pussy"" | shuf -n 1); ACTION=$(notify-send ""Test notification"" ""This notification should contain a random image in your <b>Pictures</b> folder and <a href=\""https://discord.com/app\"">Discord</a> <b>icon</b>.\n<i>Flick right to dismiss!</i>"" -a ""Discord (fake)"" -p -h ""string:image-path:$RANDOM_IMAGE"" -t 6000 -i ""discord"" -A ""openImage=Profile image"" -A ""action2=Useless button""); [[ $ACTION == *openImage ]] && xdg-open ""/var/lib/AccountsService/icons/chris""'",
+hyprland/keybinds.conf,Alt+Super,Equal,,"exec, notify-send ""Urgent notification"" ""Ah hell no"" -u critical -a 'Hyprland keybind'",
+hyprland/keybinds.conf,Super,L,,"exec, loginctl lock-session",Lock
+hyprland/keybinds.conf,Ctrl+Alt+Shift+Super,Delete,,"exec, systemctl poweroff || loginctl poweroff",Power off
+hyprland/keybinds.conf,Super,Minus,e,"exec, ~/.config/hypr/hyprland/scripts/zoom.sh decrease 0.3",Zoom out
+hyprland/keybinds.conf,Super,Equal,e,"exec, ~/.config/hypr/hyprland/scripts/zoom.sh increase 0.3",Zoom in
+hyprland/keybinds.conf,Super,code:82,e,"exec, qs -c ii ipc call zoom zoomOut",Zoom out
+hyprland/keybinds.conf,Super,code:86,e,"exec, qs -c ii ipc call zoom zoomIn",Zoom in
+hyprland/keybinds.conf,Super,code:82,e,"exec, qs -c ii ipc call TEST_ALIVE || ~/.config/hypr/hyprland/scripts/zoom.sh decrease 0.1",Zoom out
+hyprland/keybinds.conf,Super,code:86,e,"exec, qs -c ii ipc call TEST_ALIVE || ~/.config/hypr/hyprland/scripts/zoom.sh increase 0.1",Zoom in
+hyprland/keybinds.conf,Shift+Super,N,l,"exec, playerctl next || playerctl position `bc <<< ""100 * $(playerctl metadata mpris:length) / 1000000 / 100""`",Next track
+hyprland/keybinds.conf,,XF86AudioNext,l,"exec, playerctl next || playerctl position `bc <<< ""100 * $(playerctl metadata mpris:length) / 1000000 / 100""`",
+hyprland/keybinds.conf,,XF86AudioPrev,l,"exec, playerctl previous",
+hyprland/keybinds.conf,Alt+Shift+Super,mouse:275,,"exec, playerctl previous",
+hyprland/keybinds.conf,Alt+Shift+Super,mouse:276,,"exec, playerctl next || playerctl position `bc <<< ""100 * $(playerctl metadata mpris:length) / 1000000 / 100""`",
+hyprland/keybinds.conf,Shift+Super,P,l,"exec, playerctl play-pause",Play/pause media
+hyprland/keybinds.conf,,XF86AudioPlay,l,"exec, playerctl play-pause",
+hyprland/keybinds.conf,,XF86AudioPause,l,"exec, playerctl play-pause",
+hyprland/keybinds.conf,Super,T,,"exec, ~/.config/hypr/hyprland/scripts/launch_first_available.sh ""${TERMINAL}"" ""kitty -1"" ""foot"" ""alacritty"" ""wezterm"" ""konsole"" ""kgx"" ""uxterm"" ""xterm""",(terminal) (alt)
+hyprland/keybinds.conf,Ctrl+Alt,T,,"exec, ~/.config/hypr/hyprland/scripts/launch_first_available.sh ""${TERMINAL}"" ""kitty -1"" ""foot"" ""alacritty"" ""wezterm"" ""konsole"" ""kgx"" ""uxterm"" ""xterm""",(terminal) (for Ubuntu people)
+hyprland/keybinds.conf,Ctrl+Alt+Shift+Super,W,,"exec, ~/.config/hypr/hyprland/scripts/launch_first_available.sh ""wps"" ""onlyoffice-desktopeditors"" ""libreoffice""",Office software
+hyprland/keybinds.conf,Ctrl+Super,V,,"exec, ~/.config/hypr/hyprland/scripts/launch_first_available.sh ""pavucontrol-qt"" ""pavucontrol""",Volume mixer
+hyprland/keybinds.conf,Super,I,,"exec, XDG_CURRENT_DESKTOP=gnome ~/.config/hypr/hyprland/scripts/launch_first_available.sh ""qs -p ~/.config/quickshell/ii/settings.qml"" ""systemsettings"" ""gnome-control-center"" ""better-control""",Settings app
+hyprland/keybinds.conf,Ctrl+Shift,Escape,,"exec, ~/.config/hypr/hyprland/scripts/launch_first_available.sh ""gnome-system-monitor"" ""plasma-systemmonitor --page-name Processes"" ""command -v btop && kitty -1 fish -c btop""",Task manager
+hyprland/keybinds.conf,Ctrl+Super,Backslash,,"resizeactive, exact 640 480",
+custom/keybinds.conf,Ctrl+Super,E,,"exec, kate ~/.config/illogical-impulse/config.json",Edit shell config
+custom/keybinds.conf,Ctrl+Alt+Super,E,,"exec, kate ~/.config/hypr/custom/keybinds.conf",Edit extra keybinds
+custom/keybinds.conf,Super,H,,"global, quickshell:cheatsheetToggle",Toggle cheatsheet
+custom/keybinds.conf,Ctrl+Super,C,,"exec, hyprpicker -a",
+custom/keybinds.conf,,97,,"workspace, 1",
+custom/keybinds.conf,,132,,"workspace, 2",
+custom/keybinds.conf,,102,,"workspace, 3",
+custom/keybinds.conf,,100,,"workspace, 4",
+custom/keybinds.conf,,101,,"workspace, 5",
+custom/keybinds.conf,,144,,"workspace, 6",
+custom/keybinds.conf,,163,,"workspace, 7",
+custom/keybinds.conf,,248,,"workspace, 8",
+custom/keybinds.conf,,128,,"workspace, 9",
+custom/keybinds.conf,,107,,"workspace, 10",
+custom/keybinds.conf,,106,,"workspace, 11",
+custom/keybinds.conf,,63,,"workspace, 12",
+custom/keybinds.conf,Shift,97,,"movetoworkspace, 1",
+custom/keybinds.conf,Shift,132,,"movetoworkspace, 2",
+custom/keybinds.conf,Shift,102,,"movetoworkspace, 3",
+custom/keybinds.conf,Shift,100,,"movetoworkspace, 4",
+custom/keybinds.conf,Shift,101,,"movetoworkspace, 5",
+custom/keybinds.conf,Shift,144,,"movetoworkspace, 6",
+custom/keybinds.conf,Shift,163,,"movetoworkspace, 7",
+custom/keybinds.conf,Shift,248,,"movetoworkspace, 8",
+custom/keybinds.conf,Shift,128,,"movetoworkspace, 9",
+custom/keybinds.conf,Shift,107,,"movetoworkspace, 10",
+custom/keybinds.conf,Shift,106,,"movetoworkspace, 11",
+custom/keybinds.conf,Shift,63,,"movetoworkspace, 12",
+custom/keybinds.conf,Ctrl,97,,"movetoworkspacesilent, 1",
+custom/keybinds.conf,Ctrl,132,,"movetoworkspacesilent, 2",
+custom/keybinds.conf,Ctrl,102,,"movetoworkspacesilent, 3",
+custom/keybinds.conf,Ctrl,100,,"movetoworkspacesilent, 4",
+custom/keybinds.conf,Ctrl,101,,"movetoworkspacesilent, 5",
+custom/keybinds.conf,Ctrl,144,,"movetoworkspacesilent, 6",
+custom/keybinds.conf,Ctrl,163,,"movetoworkspacesilent, 7",
+custom/keybinds.conf,Ctrl,248,,"movetoworkspacesilent, 8",
+custom/keybinds.conf,Ctrl,128,,"movetoworkspacesilent, 9",
+custom/keybinds.conf,Ctrl,107,,"movetoworkspacesilent, 10",
+custom/keybinds.conf,Ctrl,106,,"movetoworkspacesilent, 11",
+custom/keybinds.conf,Ctrl,63,,"movetoworkspacesilent, 12",
+custom/keybinds.conf,Alt+Super,left,e,"resizeactive, -50 0",resize left (-50)
+custom/keybinds.conf,Alt+Super,right,e,"resizeactive, 50 0",resize right (+50)
+custom/keybinds.conf,Alt+Super,up,e,"resizeactive, 0 -50",resize up (-50)
+custom/keybinds.conf,Alt+Super,down,e,"resizeactive, 0 50",resize down (+50)
+custom/keybinds.conf,Alt+Super,X,,"layoutmsg, mfact exact 0.5",
+custom/keybinds.conf,Alt,Tab,,cyclenext,
+custom/keybinds.conf,Ctrl+Super,left,,"layoutmsg, orientationleft",
+custom/keybinds.conf,Ctrl+Super,right,,"layoutmsg, orientationright",
+custom/keybinds.conf,Ctrl+Super,up,,"layoutmsg, rollprev",
+custom/keybinds.conf,Ctrl+Super,down,,"layoutmsg, rollnext",
+custom/keybinds.conf,Ctrl+Super,space,,"layoutmsg, swapwithmaster",
+custom/keybinds.conf,,F23,,"exec, pypr layout_center toggle",
+custom/keybinds.conf,Super,Space,,"exec, pypr layout_center toggle",
+custom/keybinds.conf,Super,left,,"exec, pypr layout_center prev",
+custom/keybinds.conf,Super,right,,"exec, pypr layout_center next",
+custom/keybinds.conf,Super,up,,"exec, pypr layout_center prev2",
+custom/keybinds.conf,Super,down,,"exec, pypr layout_center next2",
+custom/keybinds.conf,,F24,,togglefloating,
+custom/keybinds.conf,,mouse:274,,movewindow,
+custom/keybinds.conf,,mouse:275,,resizewindow,
+custom/keybinds.conf,Shift+Super,Return,,"togglespecialworkspace, kitty-quake",
+custom/keybinds.conf,,F13,,"togglespecialworkspace, kitty-quake",
+custom/keybinds.conf,Shift+Super,K,,"togglespecialworkspace, music",
+custom/keybinds.conf,,F14,,"togglespecialworkspace, music",
+custom/keybinds.conf,,F16,,"togglespecialworkspace, comms1",
+custom/keybinds.conf,Shift+Super,C,,"togglespecialworkspace, comms",
+custom/keybinds.conf,Ctrl,F16,,"movetoworkspacesilent, special:comms1",
+custom/keybinds.conf,Shift,F16,,"movetoworkspace, special:comms1",
+custom/keybinds.conf,Alt,F16,,"togglespecialworkspace, comms2",
+custom/keybinds.conf,Shift+Super,D,,"togglespecialworkspace, comms2",
+custom/keybinds.conf,Ctrl+Alt,F16,,"movetoworkspacesilent, special:comms2",
+custom/keybinds.conf,Alt+Shift,F16,,"movetoworkspace, special:comms2",
+custom/keybinds.conf,,F15,,"togglespecialworkspace, aux1",
+custom/keybinds.conf,Shift+Super,A,,"togglespecialworkspace, aux1",
+custom/keybinds.conf,Ctrl,F15,,"movetoworkspacesilent, special:aux1",
+custom/keybinds.conf,Shift,F15,,"movetoworkspace, special:aux1",
+custom/keybinds.conf,Alt,F15,,"togglespecialworkspace, aux2",
+custom/keybinds.conf,Shift+Super,B,,"togglespecialworkspace, aux2",
+custom/keybinds.conf,Ctrl+Alt,F15,,"movetoworkspacesilent, special:aux2",
+custom/keybinds.conf,Alt+Shift,F15,,"movetoworkspace, special:aux2",
+custom/keybinds.conf,,F18,,"exec, pypr toggle pavucontrol",
+custom/keybinds.conf,Alt+Super,P,,"exec, pypr toggle pavucontrol",
+custom/keybinds.conf,Alt+Super,C,,"exec, pypr toggle qalculate",
+custom/keybinds.conf,Alt+Super,O,,"exec, pypr toggle orage",
+custom/keybinds.conf,Alt+Super,K,,"exec, pypr toggle keychron",
+custom/keybinds.conf,Super,A,,"exec, pypr toggle grok",
+custom/keybinds.conf,Super,C,,"exec, pypr toggle claude",
+custom/keybinds.conf,Super,E,,"exec, dolphin",Dolphin
+custom/keybinds.conf,Super,B,,"exec, vivaldi",Web Browser
+custom/keybinds.conf,Super,K,,"exec, kate",Editor
+custom/keybinds.conf,Super,Return,,"exec, kitty",Terminal
+custom/keybinds.conf,Super,O,,"exec, obsidian",Obsidian
+custom/keybinds.conf,Super,V,,"exec, code",VS Code
+custom/keybinds.conf,Super,P,,"exec, pycharm",PyCharm
+custom/keybinds.conf,Super,R,,"exec, rider",JetBrains Rider
+custom/keybinds.conf,Super,D,,"exec, discord",Discord
+custom/keybinds.conf,Super,S,,"exec, killall steam || true && game-performance steam -gamepadui -fullscreen",Steam GamePadUI
+custom/keybinds.conf,,F17,,"exec, qs -p ~/.config/quickshell/ii/settings.qml",Settings
+custom/keybinds.conf,Alt+Super,J,,"exec, vivaldi --app=https://grok.com --class=pwa-grok",
+custom/keybinds.conf,Alt+Super,L,,"exec, vivaldi --app=https://claude.ai --class=pwa-claude",
+custom/keybinds.conf,,F21,,"exec, kitty",
+custom/keybinds.conf,,F22,,"exec, vivaldi",
