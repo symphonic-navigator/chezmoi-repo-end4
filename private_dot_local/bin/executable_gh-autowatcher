@@ -1,0 +1,191 @@
+#!/usr/bin/env python3
+"""
+gh-autowatcher — polls for active GitHub Actions runs and attaches to them.
+
+Usage:
+    gh-autowatcher                        # watch current repo, all branches
+    gh-autowatcher --branch main          # watch specific branch
+    gh-autowatcher --repo owner/repo      # watch specific repo
+    gh-autowatcher --interval 15          # poll every 15 seconds (default: 10)
+    gh-autowatcher --workflow ci.yml      # filter by workflow file name
+
+Requires: gh CLI authenticated and in PATH
+"""
+
+import argparse
+import subprocess
+import sys
+import time
+import json
+from datetime import datetime
+
+
+# ANSI colors — because staring at a terminal deserves to look decent
+RESET  = "\033[0m"
+BOLD   = "\033[1m"
+DIM    = "\033[2m"
+GREEN  = "\033[32m"
+YELLOW = "\033[33m"
+CYAN   = "\033[36m"
+RED    = "\033[31m"
+BLUE   = "\033[34m"
+
+
+def color(text: str, *codes: str) -> str:
+    return "".join(codes) + text + RESET
+
+
+def timestamp() -> str:
+    return color(datetime.now().strftime("%H:%M:%S"), DIM)
+
+
+def check_gh_available() -> None:
+    """Verify gh CLI is installed and authenticated."""
+    try:
+        result = subprocess.run(
+            ["gh", "auth", "status"],
+            capture_output=True, text=True
+        )
+        if result.returncode != 0:
+            print(color("✗ gh CLI not authenticated. Run: gh auth login", RED))
+            sys.exit(1)
+    except FileNotFoundError:
+        print(color("✗ gh CLI not found. Install with: pacman -S github-cli", RED))
+        sys.exit(1)
+
+
+def get_active_runs(repo: str | None, branch: str | None, workflow: str | None) -> list[dict]:
+    """
+    Fetch runs with status 'in_progress' or 'queued' or 'waiting'.
+    Returns list of run dicts from gh CLI JSON output.
+    """
+    cmd = ["gh", "run", "list", "--json", "databaseId,name,status,headBranch,workflowName,createdAt", "--limit", "20"]
+
+    if repo:
+        cmd += ["--repo", repo]
+    if branch:
+        cmd += ["--branch", branch]
+    if workflow:
+        cmd += ["--workflow", workflow]
+
+    result = subprocess.run(cmd, capture_output=True, text=True)
+
+    if result.returncode != 0:
+        # Surface gh errors (e.g. repo not found, no runs)
+        err = result.stderr.strip()
+        if err:
+            print(color(f"  gh error: {err}", RED))
+        return []
+
+    try:
+        runs = json.loads(result.stdout)
+    except json.JSONDecodeError:
+        return []
+
+    # Filter to only active runs
+    active_statuses = {"in_progress", "queued", "waiting", "requested", "pending"}
+    return [r for r in runs if r.get("status") in active_statuses]
+
+
+def watch_run(run_id: int, repo: str | None) -> None:
+    """
+    Hand off to `gh run watch` for a specific run.
+    Blocks until the run completes.
+    """
+    cmd = ["gh", "run", "watch", str(run_id), "--exit-status"]
+    if repo:
+        cmd += ["--repo", repo]
+
+    print(color(f"\n  ↳ Attaching to run {run_id}...\n", CYAN))
+
+    try:
+        subprocess.run(cmd)
+    except KeyboardInterrupt:
+        # Ctrl+C during watch — return to polling loop gracefully
+        print(color("\n  ↩  Detached. Returning to watcher...\n", YELLOW))
+
+
+def format_run(run: dict) -> str:
+    status = run.get("status", "unknown")
+    status_icon = {
+        "in_progress": color("⟳", YELLOW),
+        "queued":      color("⏳", BLUE),
+        "waiting":     color("⏸", BLUE),
+        "requested":   color("⏸", BLUE),
+        "pending":     color("⏸", BLUE),
+    }.get(status, "?")
+
+    name     = color(run.get("workflowName", "?"), BOLD)
+    branch   = color(run.get("headBranch", "?"), CYAN)
+    run_id   = color(str(run.get("databaseId", "?")), DIM)
+
+    return f"  {status_icon}  {name}  [{branch}]  #{run_id}"
+
+
+def run_watcher(repo: str | None, branch: str | None, workflow: str | None, interval: int) -> None:
+    """Main polling loop."""
+    seen_run_ids: set[int] = set()
+
+    repo_label = repo or color("current repo", DIM)
+    print(color(f"\n  gh-autowatcher", BOLD + CYAN))
+    print(color(f"  Watching {repo_label}", DIM))
+    if branch:
+        print(color(f"  Branch filter: {branch}", DIM))
+    if workflow:
+        print(color(f"  Workflow filter: {workflow}", DIM))
+    print(color(f"  Poll interval: {interval}s  |  Ctrl+C to quit\n", DIM))
+
+    try:
+        while True:
+            runs = get_active_runs(repo, branch, workflow)
+
+            if not runs:
+                print(f"  {timestamp()}  {color('no active runs', DIM)}  (polling every {interval}s...)", end="\r", flush=True)
+            else:
+                # Clear the polling line
+                print(" " * 80, end="\r")
+
+                for run in runs:
+                    run_id = run.get("databaseId")
+
+                    if run_id not in seen_run_ids:
+                        seen_run_ids.add(run_id)
+                        print(f"\n  {timestamp()}  {color('New run detected!', GREEN + BOLD)}")
+                        print(format_run(run))
+                        watch_run(run_id, repo)
+
+                        # After watch completes, print separator and resume polling
+                        print(color("\n  ─────────────────────────────────────────", DIM))
+                        print(color(f"  Run {run_id} finished. Resuming poll...\n", DIM))
+
+            time.sleep(interval)
+
+    except KeyboardInterrupt:
+        print(color("\n\n  Watcher stopped. Bye!\n", YELLOW))
+        sys.exit(0)
+
+
+def main() -> None:
+    parser = argparse.ArgumentParser(
+        description="Poll for active GitHub Actions runs and attach to them automatically.",
+        formatter_class=argparse.RawDescriptionHelpFormatter,
+        epilog=__doc__
+    )
+    parser.add_argument("--repo",     "-r", help="Repository (owner/repo). Defaults to current dir repo.")
+    parser.add_argument("--branch",   "-b", help="Filter by branch name.")
+    parser.add_argument("--workflow", "-w", help="Filter by workflow file name (e.g. ci.yml).")
+    parser.add_argument("--interval", "-i", type=int, default=10, help="Poll interval in seconds (default: 10).")
+
+    args = parser.parse_args()
+
+    check_gh_available()
+    run_watcher(
+        repo=args.repo,
+        branch=args.branch,
+        workflow=args.workflow,
+        interval=args.interval,
+    )
+
+
+if __name__ == "__main__":
+    main()
