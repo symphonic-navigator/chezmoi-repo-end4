@@ -63,6 +63,12 @@
 - Every project gets a `README.md`
 - Must include: project description, prerequisites, installation instructions, usage, and (if applicable) development setup
 
+### Obsidian
+
+- Every repo gets an `obisdian` folder which is an Obsidian vault
+- Add obsidian state files to .gitignore (but not settings)
+- When user refers to the obsidian folder, this one is meant
+
 ### Git
 
 - Commit message style: **imperative, free-form** (e.g. `Add login endpoint`, `Fix null reference in order service`)
@@ -76,7 +82,7 @@
 
 ### Licensing
 
-- Default licence for new open-source projects: **GPL-3.0**
+- Default licence for new open-source projects: **GPL-3.0** - this does not apply to projects done for COR.energy
 
 ## General Coding Principles
 
