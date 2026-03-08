@@ -84,6 +84,11 @@
 
 - Default licence for new open-source projects: **GPL-3.0** - this does not apply to projects done for COR.energy
 
+## Search Tools
+- ALWAYS use `rg` (ripgrep) instead of `grep` — faster, respects .gitignore
+- ALWAYS prefer LSP over text search for code navigation (go-to-definition, find-references)
+- For broad text search where LSP doesn't apply: use `rg` with `--type cs` for C# files, similar for other languages
+
 ## General Coding Principles
 
 - **Comments**: add comments where the logic is non-obvious or the reasoning matters; never comment trivial code (no `// increment i` style comments)
