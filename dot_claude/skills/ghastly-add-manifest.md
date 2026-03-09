@@ -5,16 +5,21 @@ description: Add a ghastly/v1 artifact manifest step to a GitHub Actions workflo
 
 # ghastly-add-manifest
 
-Adds a step to a GitHub Actions workflow that writes a `ghastly/v1` artifact manifest as an HTML comment into `$GITHUB_STEP_SUMMARY`. ghastly reads this comment from the step summary to display artifact versions and references in its detail panel.
+Adds two steps to a GitHub Actions workflow job that write a `ghastly/v1` manifest
+JSON file and upload it as a GitHub Actions artifact. ghastly downloads this
+artifact via the API to display artifact versions and references in its detail panel.
+
+> **Important:** ghastly reads the manifest from a GitHub Actions **artifact**, NOT
+> from `$GITHUB_STEP_SUMMARY`. The check-runs API (`output.summary`) is always `null`
+> for native Actions jobs — step summaries are not accessible via API.
 
 ---
 
 ## The manifest format
 
-ghastly parses the following HTML comment from the step summary (regex: `<!-- ghastly:artifacts\s*([\s\S]*?)-->`):
+The manifest is a plain JSON file (e.g. `ghastly-manifest.json`):
 
-```
-<!-- ghastly:artifacts
+```json
 {
   "schema": "ghastly/v1",
   "built_at": "2024-01-15T10:30:00Z",
@@ -28,20 +33,19 @@ ghastly parses the following HTML comment from the step summary (regex: `<!-- gh
     }
   ]
 }
--->
 ```
 
 **Field rules:**
 - `schema` must be exactly `"ghastly/v1"` — any other value is silently ignored
-- `built_at` — ISO 8601 UTC timestamp (use `$(date -u +"%Y-%m-%dT%H:%M:%SZ")` in the step shell)
+- `built_at` — ISO 8601 UTC timestamp (use `$(date -u +"%Y-%m-%dT%H:%M:%SZ")` in shell)
 - `trigger` — GitHub event name (`push`, `pull_request`, `workflow_dispatch`, etc.)
-- `artifacts` — array of one or more artifact entries; all four fields per entry are required:
+- `artifacts` — array of one or more entries; all four fields per entry are required:
   - `name` — short human-readable identifier (shown in table column)
   - `type` — artifact kind (see type conventions below)
-  - `version` — semver or tag, shown as-is
+  - `version` — semver, tag, or short SHA; shown as-is
   - `ref` — how to pull/use the artefact; shown as-is in the table
 
-**Type conventions (use these strings):**
+**Type conventions:**
 
 | type | example ref |
 |------|-------------|
@@ -56,6 +60,23 @@ Use `docker` for any OCI image regardless of registry.
 
 ---
 
+## Artifact naming convention
+
+The artifact uploaded to GitHub Actions **must be named with the prefix `ghastly-manifest`**.
+ghastly finds it via `startswith("ghastly-manifest")`.
+
+- Single job: use `ghastly-manifest` or `ghastly-manifest-<jobname>`
+- Multiple parallel jobs: each job must use a **unique suffix** — artifact names must be
+  unique per workflow run:
+  - `ghastly-manifest-api`
+  - `ghastly-manifest-frontend`
+  - `ghastly-manifest-worker`
+
+ghastly downloads **all** matching artifacts and merges their `artifacts` lists into
+one table, so all jobs appear together in the detail panel.
+
+---
+
 ## Step-by-step process
 
 ### Step 1 — Find the workflow file
@@ -64,7 +85,8 @@ Use `docker` for any OCI image regardless of registry.
 ls .github/workflows/
 ```
 
-Read the relevant workflow file(s). If there are multiple, ask the user which one to modify (or check which one is the main build/release workflow).
+Read the relevant workflow file(s). If there are multiple, ask the user which one
+to modify (or check which one is the main build/release workflow).
 
 ### Step 2 — Identify what the build produces
 
@@ -87,22 +109,29 @@ Look for:
 
 ### Step 4 — Determine correct placement
 
-The manifest step should go **after** the build/push steps succeed but **before** the job ends. Use `if: always()` only if you want the manifest even on partial failure — otherwise omit `if:` so it only runs when all prior steps succeeded.
+The two manifest steps go **after** the build/push steps succeed but **before** the
+job ends. Use `if: always()` only if the manifest should also be uploaded on failure;
+otherwise omit `if:` so it only runs when all prior steps succeed.
 
-For release workflows, place it after the push/publish step.
+### Step 5 — Count jobs and choose artifact name(s)
 
-### Step 5 — Write the step YAML
+- If the workflow has **one job** producing artifacts: use `ghastly-manifest` or
+  `ghastly-manifest-<something>`.
+- If the workflow has **multiple parallel jobs** each producing artifacts: give each
+  job a unique suffix (`ghastly-manifest-api`, `ghastly-manifest-frontend`, etc.).
 
-Use this template (adapt the `env:` block and artifact array to what was found in steps 2 and 3):
+### Step 6 — Write the two steps
+
+Use this template (adapt `env:`, artifact array and artifact name):
 
 ```yaml
       - name: Write ghastly manifest
         env:
-          VERSION: ${{ env.VERSION }}           # adjust to actual version source
+          VERSION: ${{ env.VERSION }}        # adjust to actual version source
           TRIGGER: ${{ github.event_name }}
+          REPO_OWNER: ${{ github.repository_owner }}
         run: |
-          cat >> "$GITHUB_STEP_SUMMARY" << EOF
-          <!-- ghastly:artifacts
+          cat > ghastly-manifest.json << EOF
           {
             "schema": "ghastly/v1",
             "built_at": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")",
@@ -112,28 +141,45 @@ Use this template (adapt the `env:` block and artifact array to what was found i
                 "name": "my-app",
                 "type": "docker",
                 "version": "$VERSION",
-                "ref": "ghcr.io/${{ github.repository }}:$VERSION"
+                "ref": "ghcr.io/$REPO_OWNER/my-app:$VERSION"
               }
             ]
           }
-          -->
           EOF
+          cat >> "$GITHUB_STEP_SUMMARY" << EOF
+          ## Build complete
+
+          | Field   | Value        |
+          |---------|--------------|
+          | Image   | my-app       |
+          | Version | \`$VERSION\` |
+          | Trigger | $TRIGGER     |
+          EOF
+
+      - name: Upload ghastly manifest
+        uses: actions/upload-artifact@v4
+        with:
+          name: ghastly-manifest        # add a unique suffix if multiple parallel jobs
+          path: ghastly-manifest.json
+          retention-days: 7
 ```
 
 **Important notes on shell quoting:**
 - Use `<< EOF` (unquoted) so shell variables (`$VERSION`, `$TRIGGER`) are expanded
-- GitHub Actions expressions (`${{ }}`) are evaluated *before* the shell runs, so they can appear inside either heredoc style
-- `$(date ...)` inside `<< EOF` is evaluated by the shell at runtime — this is correct
+- GitHub Actions expressions (`${{ }}`) are evaluated *before* the shell runs — they
+  can appear outside the heredoc in `env:` blocks (preferred) or inside `<< EOF`
+- `$(date ...)` inside `<< EOF` is evaluated by the shell at runtime — correct
 - Do NOT use `<<'EOF'` (single-quoted heredoc) — shell variables would not expand
+- The `$GITHUB_STEP_SUMMARY` section is optional but makes the GitHub Actions UI
+  nicer; it is NOT read by ghastly
 
-### Step 6 — Multiple artifacts
+### Step 7 — Multiple artifacts in one job
 
-If the build produces more than one artifact (e.g., multiple Docker images, or a Docker image + a Helm chart), list them all in the `artifacts` array:
+List them all in the `artifacts` array of the single JSON file:
 
 ```yaml
         run: |
-          cat >> "$GITHUB_STEP_SUMMARY" << EOF
-          <!-- ghastly:artifacts
+          cat > ghastly-manifest.json << EOF
           {
             "schema": "ghastly/v1",
             "built_at": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")",
@@ -143,32 +189,34 @@ If the build produces more than one artifact (e.g., multiple Docker images, or a
                 "name": "api",
                 "type": "docker",
                 "version": "$VERSION",
-                "ref": "ghcr.io/${{ github.repository }}/api:$VERSION"
+                "ref": "ghcr.io/$REPO_OWNER/api:$VERSION"
               },
               {
                 "name": "worker",
                 "type": "docker",
                 "version": "$VERSION",
-                "ref": "ghcr.io/${{ github.repository }}/worker:$VERSION"
+                "ref": "ghcr.io/$REPO_OWNER/worker:$VERSION"
               }
             ]
           }
-          -->
           EOF
 ```
 
-### Step 7 — Insert the step into the workflow file
+### Step 8 — Insert the steps into the workflow file
 
-Use the Edit tool to insert the step at the correct position. Preserve existing indentation (typically 6 spaces for steps inside a job).
+Use the Edit tool to insert both steps at the correct position. Preserve existing
+indentation (typically 6 spaces for steps inside a job).
 
-### Step 8 — Verify
+### Step 9 — Verify
 
 After editing, read the modified section back and confirm:
 - The YAML indentation is consistent with the surrounding steps
 - The `schema` value is exactly `"ghastly/v1"`
-- All four artifact fields are present
+- All four artifact fields are present per entry
 - The heredoc marker is unquoted (`<< EOF`, not `<<'EOF'`)
 - Variable names match what is actually set earlier in the workflow
+- The artifact `name:` starts with `ghastly-manifest`
+- Parallel jobs use unique artifact name suffixes
 
 Report the changes to the user with a brief summary of what was added and where.
 
@@ -185,9 +233,9 @@ Version comes from the tag (`github.ref_name`):
         env:
           VERSION: ${{ github.ref_name }}
           TRIGGER: ${{ github.event_name }}
+          REPO_OWNER: ${{ github.repository_owner }}
         run: |
-          cat >> "$GITHUB_STEP_SUMMARY" << EOF
-          <!-- ghastly:artifacts
+          cat > ghastly-manifest.json << EOF
           {
             "schema": "ghastly/v1",
             "built_at": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")",
@@ -197,12 +245,18 @@ Version comes from the tag (`github.ref_name`):
                 "name": "${{ github.event.repository.name }}",
                 "type": "docker",
                 "version": "$VERSION",
-                "ref": "ghcr.io/${{ github.repository }}:$VERSION"
+                "ref": "ghcr.io/$REPO_OWNER/${{ github.event.repository.name }}:$VERSION"
               }
             ]
           }
-          -->
           EOF
+
+      - name: Upload ghastly manifest
+        uses: actions/upload-artifact@v4
+        with:
+          name: ghastly-manifest
+          path: ghastly-manifest.json
+          retention-days: 7
 ```
 
 ### NuGet package
@@ -214,8 +268,7 @@ Version comes from the tag (`github.ref_name`):
           PKG_NAME: MyCompany.MyLib
           TRIGGER: ${{ github.event_name }}
         run: |
-          cat >> "$GITHUB_STEP_SUMMARY" << EOF
-          <!-- ghastly:artifacts
+          cat > ghastly-manifest.json << EOF
           {
             "schema": "ghastly/v1",
             "built_at": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")",
@@ -229,8 +282,14 @@ Version comes from the tag (`github.ref_name`):
               }
             ]
           }
-          -->
           EOF
+
+      - name: Upload ghastly manifest
+        uses: actions/upload-artifact@v4
+        with:
+          name: ghastly-manifest
+          path: ghastly-manifest.json
+          retention-days: 7
 ```
 
 ### Commit-based (no version tag)
@@ -239,10 +298,10 @@ Version comes from the tag (`github.ref_name`):
       - name: Write ghastly manifest
         env:
           TRIGGER: ${{ github.event_name }}
+          REPO_OWNER: ${{ github.repository_owner }}
         run: |
           SHORT_SHA=$(echo "$GITHUB_SHA" | cut -c1-7)
-          cat >> "$GITHUB_STEP_SUMMARY" << EOF
-          <!-- ghastly:artifacts
+          cat > ghastly-manifest.json << EOF
           {
             "schema": "ghastly/v1",
             "built_at": "$(date -u +"%Y-%m-%dT%H:%M:%SZ")",
@@ -252,10 +311,40 @@ Version comes from the tag (`github.ref_name`):
                 "name": "${{ github.event.repository.name }}",
                 "type": "docker",
                 "version": "$SHORT_SHA",
-                "ref": "ghcr.io/${{ github.repository }}:$SHORT_SHA"
+                "ref": "ghcr.io/$REPO_OWNER/${{ github.event.repository.name }}:$SHORT_SHA"
               }
             ]
           }
-          -->
           EOF
+
+      - name: Upload ghastly manifest
+        uses: actions/upload-artifact@v4
+        with:
+          name: ghastly-manifest
+          path: ghastly-manifest.json
+          retention-days: 7
 ```
+
+### Two parallel jobs (e.g. api + frontend)
+
+Each job gets a unique artifact suffix so they don't conflict:
+
+```yaml
+# in build-api job:
+      - name: Upload ghastly manifest
+        uses: actions/upload-artifact@v4
+        with:
+          name: ghastly-manifest-api
+          path: ghastly-manifest.json
+          retention-days: 7
+
+# in build-frontend job:
+      - name: Upload ghastly manifest
+        uses: actions/upload-artifact@v4
+        with:
+          name: ghastly-manifest-frontend
+          path: ghastly-manifest.json
+          retention-days: 7
+```
+
+ghastly merges both into a single artifact table.
