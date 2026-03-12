@@ -29,17 +29,7 @@ if status is-interactive # Commands to run in interactive sessions can go here
     end
 
     # 4. Abbreviations (instead of aliases)
-    abbr -a vim nvim
-    abbr -a v nvim
     abbr -a reset 'clear; source ~/.config/fish/config.fish; hyprctl reload'
-    abbr -a yay 'yay --answerclean All --answerdiff N --answeredit N --answerupgrade Y --removemake --noconfirm'
-    abbr -a ghc 'gh copilot'
-    abbr -a ghce 'gh copilot explain'
-    abbr -a ghcs 'gh copilot suggest'
-    abbr -a wlc wl-copy
-    abbr -a wlp wl-paste
-    abbr -a l ls -l --icons
-    abbr -a claude claude --dangerously-skip-permissions
 
     # 5. Password functions
     function pw-alpha -d "generates a simple alphanumeric password"

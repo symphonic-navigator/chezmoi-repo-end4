@@ -1,0 +1,307 @@
+#!/usr/bin/env python3
+"""apc — Advanced Player Control
+
+Wraps playerctl with intelligent Spotify-first media control and stateful pause/resume.
+Usage: apc <action> [modifier] [--debug]
+"""
+
+import json
+import os
+import subprocess
+import sys
+import tempfile
+from pathlib import Path
+
+
+def default_config() -> dict:
+    return {
+        "primary_player_patterns": ["spotify", "Spotify"],
+        "ignored_player_patterns": ["plasma-browser-integration"],
+        "next_command": (
+            'playerctl next || playerctl position '
+            '$(bc <<< "100 * $(playerctl metadata mpris:length) / 1000000 / 100")'
+        ),
+        "previous_command": "playerctl previous",
+    }
+
+
+def load_config() -> dict:
+    xdg_config = os.environ.get("XDG_CONFIG_HOME", str(Path.home() / ".config"))
+    config_path = Path(xdg_config) / "apc" / "config.json"
+    if not config_path.exists():
+        config_path.parent.mkdir(parents=True, exist_ok=True)
+        config_path.write_text(json.dumps(default_config(), indent=2))
+        return default_config()
+    try:
+        return json.loads(config_path.read_text())
+    except (json.JSONDecodeError, OSError) as exc:
+        print(f"apc: warning: malformed config {config_path}: {exc}", file=sys.stderr)
+        return default_config()
+
+
+def _state_path() -> Path:
+    runtime_dir = os.environ.get("XDG_RUNTIME_DIR", "/tmp")
+    return Path(runtime_dir) / "apc-state.json"
+
+
+def load_state() -> dict:
+    path = _state_path()
+    if not path.exists():
+        return {}
+    try:
+        return json.loads(path.read_text())
+    except (json.JSONDecodeError, OSError):
+        return {}
+
+
+def save_state(state: dict) -> None:
+    path = _state_path()
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with tempfile.NamedTemporaryFile(
+        mode="w", dir=path.parent, delete=False, suffix=".tmp"
+    ) as tf:
+        json.dump(state, tf)
+        tmp = tf.name
+    os.replace(tmp, path)
+
+
+def clear_state_keys(*keys: str) -> None:
+    state = load_state()
+    for key in keys:
+        state.pop(key, None)
+    if state:
+        save_state(state)
+    else:
+        _state_path().unlink(missing_ok=True)
+
+
+def find_primary_player(players: list[str], patterns: list[str]) -> str | None:
+    """Return the first player whose name contains any of the patterns."""
+    for player in players:
+        for pattern in patterns:
+            if pattern in player:
+                return player
+    return None
+
+
+def run_cmd(args: list[str] | str, shell: bool = False, debug: bool = False) -> str:
+    """Run a subprocess command and return stripped stdout."""
+    if debug:
+        cmd_str = args if isinstance(args, str) else " ".join(args)
+        print(f"apc: run: {cmd_str}", file=sys.stderr)
+    try:
+        result = subprocess.run(args, shell=shell, capture_output=True, text=True)
+        if debug and result.returncode != 0:
+            print(f"apc: exit {result.returncode}: {result.stderr.strip()}", file=sys.stderr)
+        return result.stdout.strip()
+    except FileNotFoundError:
+        print("apc: error: playerctl not found. Install playerctl first.", file=sys.stderr)
+        sys.exit(1)
+
+
+def get_all_players(debug: bool = False, ignored_patterns: list[str] | None = None) -> list[str]:
+    output = run_cmd(["playerctl", "--list-all"], debug=debug)
+    players = [p for p in output.splitlines() if p.strip()] if output else []
+    if ignored_patterns:
+        players = [
+            p for p in players
+            if not any(pat in p for pat in ignored_patterns)
+        ]
+    return players
+
+
+def get_playing_players(debug: bool = False, ignored_patterns: list[str] | None = None) -> list[str]:
+    players = get_all_players(debug=debug, ignored_patterns=ignored_patterns)
+    return [
+        p for p in players
+        if run_cmd(["playerctl", "-p", p, "status"], debug=debug) == "Playing"
+    ]
+
+
+def cmd_next(config: dict, debug: bool = False) -> None:
+    ignored = config.get("ignored_player_patterns", [])
+    players = get_all_players(debug=debug, ignored_patterns=ignored)
+    primary = find_primary_player(players, config["primary_player_patterns"])
+    if primary:
+        run_cmd(["playerctl", "-p", primary, "next"], debug=debug)
+    else:
+        run_cmd(config["next_command"], shell=True, debug=debug)
+
+
+def cmd_previous(config: dict, debug: bool = False) -> None:
+    ignored = config.get("ignored_player_patterns", [])
+    players = get_all_players(debug=debug, ignored_patterns=ignored)
+    primary = find_primary_player(players, config["primary_player_patterns"])
+    if primary:
+        run_cmd(["playerctl", "-p", primary, "previous"], debug=debug)
+    else:
+        run_cmd(config["previous_command"], shell=True, debug=debug)
+
+
+def cmd_next_alt(debug: bool = False) -> None:
+    run_cmd(["playerctl", "next"], debug=debug)
+
+
+def cmd_previous_alt(debug: bool = False) -> None:
+    run_cmd(["playerctl", "previous"], debug=debug)
+
+
+def cmd_play_pause_recent(debug: bool = False) -> None:
+    run_cmd(["playerctl", "play-pause"], debug=debug)
+
+
+def cmd_next_recent(debug: bool = False) -> None:
+    run_cmd(["playerctl", "next"], debug=debug)
+
+
+def cmd_previous_recent(debug: bool = False) -> None:
+    run_cmd(["playerctl", "previous"], debug=debug)
+
+
+def cmd_play_pause(config: dict, debug: bool = False) -> None:
+    patterns = config["primary_player_patterns"]
+    ignored = config.get("ignored_player_patterns", [])
+    playing = get_playing_players(debug=debug, ignored_patterns=ignored)
+
+    if playing:
+        if debug:
+            print(f"apc: pausing {playing}", file=sys.stderr)
+        for player in playing:
+            run_cmd(["playerctl", "-p", player, "pause"], debug=debug)
+        state = load_state()
+        state["paused_by_apc"] = playing
+        state["spotify_was_playing"] = find_primary_player(playing, patterns) is not None
+        save_state(state)
+        return
+
+    state = load_state()
+    if "paused_by_apc" in state:
+        all_players = get_all_players(debug=debug, ignored_patterns=ignored)
+        if state.get("spotify_was_playing"):
+            primary_name = find_primary_player(state["paused_by_apc"], patterns)
+            if primary_name is not None and primary_name in all_players:
+                if debug:
+                    print(f"apc: resuming primary: {primary_name}", file=sys.stderr)
+                run_cmd(["playerctl", "-p", primary_name, "play"], debug=debug)
+            else:
+                if debug:
+                    print("apc: primary gone, resuming all stored", file=sys.stderr)
+                for player in state["paused_by_apc"]:
+                    if player in all_players:
+                        run_cmd(["playerctl", "-p", player, "play"], debug=debug)
+        else:
+            for player in state["paused_by_apc"]:
+                if player in all_players:
+                    run_cmd(["playerctl", "-p", player, "play"], debug=debug)
+        clear_state_keys("paused_by_apc", "spotify_was_playing")
+        return
+
+    # Cold start: no state, nothing playing
+    all_players = get_all_players(debug=debug, ignored_patterns=ignored)
+    if not all_players:
+        if debug:
+            print("apc: no players available", file=sys.stderr)
+        return
+    primary = find_primary_player(all_players, patterns)
+    if primary:
+        run_cmd(["playerctl", "-p", primary, "play-pause"], debug=debug)
+    else:
+        run_cmd(["playerctl", "play-pause"], debug=debug)
+
+
+def cmd_play_pause_alt(config: dict, debug: bool = False) -> None:
+    patterns = config["primary_player_patterns"]
+    ignored = config.get("ignored_player_patterns", [])
+    playing = get_playing_players(debug=debug, ignored_patterns=ignored)
+    non_primary_playing = [
+        p for p in playing if find_primary_player([p], patterns) is None
+    ]
+
+    # If something is playing but it is all primary-player traffic, do nothing.
+    # Alt is explicitly meant to ignore the primary player.
+    if playing and not non_primary_playing:
+        if debug:
+            print("apc: alt: only primary player is playing, nothing to do", file=sys.stderr)
+        return
+
+    if non_primary_playing:
+        if debug:
+            print(f"apc: pausing (alt) {non_primary_playing}", file=sys.stderr)
+        for player in non_primary_playing:
+            run_cmd(["playerctl", "-p", player, "pause"], debug=debug)
+        state = load_state()
+        state["paused_by_apc_alt"] = non_primary_playing
+        save_state(state)
+        return
+
+    state = load_state()
+    if "paused_by_apc_alt" in state:
+        all_players = get_all_players(debug=debug, ignored_patterns=ignored)
+        for player in state["paused_by_apc_alt"]:
+            if player in all_players:
+                run_cmd(["playerctl", "-p", player, "play"], debug=debug)
+        clear_state_keys("paused_by_apc_alt")
+        return
+
+    # Cold start: find first non-primary player
+    all_players = get_all_players(debug=debug, ignored_patterns=ignored)
+    if not all_players:
+        if debug:
+            print("apc: no players available", file=sys.stderr)
+        return
+    non_primary = next(
+        (p for p in all_players if find_primary_player([p], patterns) is None),
+        None,
+    )
+    if non_primary:
+        run_cmd(["playerctl", "-p", non_primary, "play-pause"], debug=debug)
+    else:
+        run_cmd(["playerctl", "play-pause"], debug=debug)
+
+
+_VALID_ACTIONS = {"play-pause", "next", "previous"}
+_VALID_MODIFIERS = {None, "alt", "recent"}
+
+
+def parse_args(argv: list[str]) -> tuple[str, str | None, bool]:
+    """Parse sys.argv and return (action, modifier, debug)."""
+    debug = "--debug" in argv[1:]
+    args = [a for a in argv[1:] if a != "--debug"]
+
+    if not args:
+        print("Usage: apc <action> [modifier] [--debug]", file=sys.stderr)
+        print(f"  Actions:   {', '.join(sorted(_VALID_ACTIONS))}", file=sys.stderr)
+        print(f"  Modifiers: alt, recent", file=sys.stderr)
+        sys.exit(1)
+
+    action = args[0]
+    modifier = args[1] if len(args) > 1 else None
+
+    if action not in _VALID_ACTIONS or modifier not in _VALID_MODIFIERS:
+        print(f"apc: unknown command: {' '.join(args)}", file=sys.stderr)
+        sys.exit(1)
+
+    return action, modifier, debug
+
+
+def main() -> None:
+    action, modifier, debug = parse_args(sys.argv)
+    config = load_config()
+
+    dispatch = {
+        ("play-pause", None):      lambda: cmd_play_pause(config, debug),
+        ("next",       None):      lambda: cmd_next(config, debug),
+        ("previous",   None):      lambda: cmd_previous(config, debug),
+        ("play-pause", "alt"):     lambda: cmd_play_pause_alt(config, debug),
+        ("next",       "alt"):     lambda: cmd_next_alt(debug),
+        ("previous",   "alt"):     lambda: cmd_previous_alt(debug),
+        ("play-pause", "recent"):  lambda: cmd_play_pause_recent(debug),
+        ("next",       "recent"):  lambda: cmd_next_recent(debug),
+        ("previous",   "recent"):  lambda: cmd_previous_recent(debug),
+    }
+
+    dispatch[(action, modifier)]()
+
+
+if __name__ == "__main__":
+    main()
