@@ -39,6 +39,7 @@ neovim
 nodejs
 npm
 obsidian
+ollama
 openssh
 openai-codex
 openssl

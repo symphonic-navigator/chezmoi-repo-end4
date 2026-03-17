@@ -11,6 +11,13 @@ xkb_symbols "basic" {
     key <AC03> { [ d, D, parenright ] };      // AltGr+D = )
     key <AC04> { [ f, F, bracketright ] };    // AltGr+F = ]
     key <AD04> { [ r, R, braceright ] };      // AltGr+R = }
+    // ALTGR mappings — programming symbols
+    key <AD05> { [ t, T, slash ] };               // AltGr+T = /
+    key <AD06> { [ z, Z, backslash ] };           // AltGr+Z = backslash
+    key <AC05> { [ g, G, bar ] };                 // AltGr+G = |
+    key <AB01> { [ y, Y, less ] };                // AltGr+Y = <
+    key <AB02> { [ x, X, greater ] };             // AltGr+X = >
+    key <AB03> { [ c, C, asciitilde ] };          // AltGr+C = ~
     key <AD11> { [ udiaeresis, Udiaeresis, grave ] }; // AltGr+Ü = `
     key <BKSL> { [ numbersign, apostrophe, apostrophe, apostrophe ] }; // AltGr+# = '
     key <AC11> { [ adiaresis, Adiaresis, asterisk ] };
