@@ -55,13 +55,3 @@ match_by = "class"
 class = "chrome-grok.com__-Default"
 #process_tracking = false
 
-[scratchpads.claude]
-animation = ""
-command = "claude-desktop"
-size = "90% 90%"
-position = "5% 5%"
-class = "Claude"
-restore_excluded = false
-lazy = false
-alt_toggle = true
-multi = false
