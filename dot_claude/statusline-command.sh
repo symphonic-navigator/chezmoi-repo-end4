@@ -6,23 +6,6 @@ cwd=$(echo "$input" | jq -r '.workspace.current_dir // .cwd // ""')
 user=$(whoami)
 host=$(hostname -s)
 
-# --- Model segment ---
-# Display name from the model field
-model_name=$(echo "$input" | jq -r '.model.display_name // ""')
-
-# Output style (e.g. "Explanatory", "Learning") — shown if not the default
-output_style=$(echo "$input" | jq -r '.output_style.name // ""')
-
-model_part=""
-if [ -n "$model_name" ]; then
-    model_part="$model_name"
-
-    # Append output style only when it is set and not the plain default
-    if [ -n "$output_style" ] && [ "$output_style" != "default" ] && [ "$output_style" != "Default" ]; then
-        model_part="${model_part} (${output_style})"
-    fi
-fi
-
 # --- Git branch and status indicators ---
 git_part=""
 if git -C "$cwd" rev-parse --git-dir >/dev/null 2>&1; then
@@ -30,19 +13,15 @@ if git -C "$cwd" rev-parse --git-dir >/dev/null 2>&1; then
              || git -C "$cwd" rev-parse --short HEAD 2>/dev/null)
 
     if [ -n "$branch" ]; then
-        # Collect status indicators
         porcelain=$(git -C "$cwd" --no-optional-locks status --porcelain 2>/dev/null)
         indicators=""
 
-        # Staged changes
         if echo "$porcelain" | grep -q '^[MADRC]'; then
             indicators="${indicators}+"
         fi
-        # Unstaged modifications / deletions
         if echo "$porcelain" | grep -q '^.[MD]'; then
             indicators="${indicators}!"
         fi
-        # Untracked files
         if echo "$porcelain" | grep -q '^??'; then
             indicators="${indicators}?"
         fi
@@ -55,7 +34,42 @@ if git -C "$cwd" rev-parse --git-dir >/dev/null 2>&1; then
     fi
 fi
 
-# --- Context window fill level ---
+# --- Model ---
+model_name=$(echo "$input" | jq -r '.model.display_name // ""')
+
+# --- Rate limits (5h and 7d windows) ---
+# Try array format: [{window:"5h", used_percentage:...}, {window:"7d", ...}]
+rl_5h=$(echo "$input" | jq -r '
+  (.rate_limits // [])
+  | if type == "array" then
+      (map(select(.window == "5h" or .window == "five_hour")) | first | .used_percentage // empty)
+    else
+      (.["5h"].used_percentage // .five_hour.used_percentage // empty)
+    end
+' 2>/dev/null)
+
+rl_7d=$(echo "$input" | jq -r '
+  (.rate_limits // [])
+  | if type == "array" then
+      (map(select(.window == "7d" or .window == "seven_day")) | first | .used_percentage // empty)
+    else
+      (.["7d"].used_percentage // .seven_day.used_percentage // empty)
+    end
+' 2>/dev/null)
+
+if [ -n "$rl_5h" ] && [ "$rl_5h" != "null" ]; then
+    rl_5h_display=$(printf "%d%%" "$(printf "%.0f" "$rl_5h")")
+else
+    rl_5h_display="-"
+fi
+
+if [ -n "$rl_7d" ] && [ "$rl_7d" != "null" ]; then
+    rl_7d_display=$(printf "%d%%" "$(printf "%.0f" "$rl_7d")")
+else
+    rl_7d_display="-"
+fi
+
+# --- Context window fill ---
 used_pct=$(echo "$input" | jq -r '.context_window.used_percentage // empty')
 if [ -n "$used_pct" ]; then
     ctx_display=$(printf "ctx %d%%" "$(printf "%.0f" "$used_pct")")
@@ -63,18 +77,17 @@ else
     ctx_display="ctx -"
 fi
 
-# --- Assemble: model | user@host | pwd | branch [indicators] | ctx % ---
-# Start with model if available
-if [ -n "$model_part" ]; then
-    line="${model_part} | ${user}@${host} | ${cwd}"
-else
-    line="${user}@${host} | ${cwd}"
-fi
-
+# --- Line 1: user@host | cwd | branch ---
+line1="${user}@${host} | ${cwd}"
 if [ -n "$git_part" ]; then
-    line="${line} | ${git_part}"
+    line1="${line1} | ${git_part}"
 fi
 
-line="${line} | ${ctx_display}"
+# --- Line 2: model | 5h X% w X% | ctx X% ---
+line2=""
+if [ -n "$model_name" ]; then
+    line2="${model_name}"
+fi
+line2="${line2} | 5h ${rl_5h_display} w ${rl_7d_display} | ${ctx_display}"
 
-printf "%s" "$line"
+printf "%s\n%s" "$line1" "$line2"
