@@ -1,0 +1,400 @@
+#!/usr/bin/env python3
+"""kquake - Quake-style window management for KDE 6.
+
+Usage: kquake <command> <name>
+
+Commands:
+    start   Start the application and hide its window
+    stop    Stop the application
+    show    Show the window fullscreen on the current monitor
+    hide    Hide the window
+    toggle  Toggle between show and hide
+
+Configuration: ~/.config/kquake.toml
+
+    [myterm]
+    executable = "kitty"
+    class = "kitty"
+
+    [browser]
+    executable = "firefox"
+    class = "firefox"
+    title = ".*Mozilla Firefox"
+
+Each entry needs at least 'class' or 'title' (regex). If both are
+given they are AND-combined. 'executable' is required for 'start'.
+"""
+
+import json
+import os
+import shlex
+import shutil
+import subprocess
+import sys
+import tempfile
+import time
+
+try:
+    import tomllib
+except ImportError:
+    sys.exit("kquake: Python 3.11+ required (for tomllib)")
+
+CONFIG_PATH = os.path.expanduser("~/.config/kquake.toml")
+STATE_DIR = os.path.expanduser("~/.local/state/kquake")
+QDBUS = "qdbus6"
+QDBUS_TIMEOUT = 5
+KWIN_SERVICE = "org.kde.KWin"
+SCRIPTING_PATH = "/Scripting"
+SCRIPTING_IFACE = "org.kde.kwin.Scripting"
+SCRIPT_IFACE = "org.kde.kwin.Script"
+
+
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+
+def die(msg):
+    print(f"kquake: {msg}", file=sys.stderr)
+    sys.exit(1)
+
+
+def qdbus(*args):
+    """Call qdbus6 org.kde.KWin <args> and return CompletedProcess."""
+    cmd = [QDBUS, KWIN_SERVICE] + list(args)
+    return subprocess.run(
+        cmd, capture_output=True, text=True, timeout=QDBUS_TIMEOUT
+    )
+
+
+# ---------------------------------------------------------------------------
+# Config
+# ---------------------------------------------------------------------------
+
+def load_config(name):
+    if not os.path.isfile(CONFIG_PATH):
+        die(f"config not found: {CONFIG_PATH}")
+    with open(CONFIG_PATH, "rb") as f:
+        try:
+            config = tomllib.load(f)
+        except tomllib.TOMLDecodeError as e:
+            die(f"config parse error: {e}")
+    if name not in config:
+        die(f"entry '{name}' not found in config")
+    entry = config[name]
+    if "class" not in entry and "title" not in entry:
+        die(f"entry '{name}': at least 'class' or 'title' required")
+    return entry
+
+
+# ---------------------------------------------------------------------------
+# KWin script generation (JavaScript for KWin 6 scripting API)
+# ---------------------------------------------------------------------------
+
+def _match_expr(config):
+    """JS boolean expression that tests window variable `w`."""
+    parts = []
+    cls = config.get("class", "")
+    title = config.get("title", "")
+    if cls:
+        c = json.dumps(cls)
+        parts.append(
+            f"(new RegExp({c}).test(w.resourceClass)"
+            f" || new RegExp({c}).test(w.resourceName))"
+        )
+    if title:
+        t = json.dumps(title)
+        parts.append(f"new RegExp({t}).test(w.caption)")
+    return " && ".join(parts) if len(parts) > 1 else parts[0]
+
+
+def _move_to_cursor_screen_js():
+    """JS block: find the output under the cursor → variable `__scr`."""
+    return """\
+    var __scr = null, __cur = workspace.cursorPos, __outs = workspace.screens;
+    for (var __i = 0; __i < __outs.length; __i++) {
+        var __g = __outs[__i].geometry;
+        if (__cur.x >= __g.x && __cur.x < __g.x + __g.width &&
+            __cur.y >= __g.y && __cur.y < __g.y + __g.height) {
+            __scr = __outs[__i]; break;
+        }
+    }
+"""
+
+
+def _show_block():
+    """JS statements to show + configure window `w`."""
+    return _move_to_cursor_screen_js() + """\
+    var __out = __scr || workspace.screens[0];
+    w.desktops = [workspace.currentDesktop];
+    w.skipTaskbar = true;
+    w.skipSwitcher = true;
+    w.keepAbove = true;
+    w.noBorder = true;
+    w.minimized = false;
+    w.frameGeometry = workspace.clientArea(
+        KWin.FullScreenArea, __out, workspace.currentDesktop);
+    workspace.activeWindow = w;
+"""
+
+
+def _hide_block():
+    """JS statements to hide window `w`."""
+    return """\
+    w.minimized = true;
+"""
+
+
+def _for_matching(config, body):
+    """Wrap `body` in a loop over all windows that match config."""
+    match = _match_expr(config)
+    return (
+        "(function() {\n"
+        "var __ws = workspace.windowList();\n"
+        "for (var __j = 0; __j < __ws.length; __j++) {\n"
+        "    var w = __ws[__j];\n"
+        f"    if ({match}) {{\n"
+        f"{body}"
+        "        break;\n"
+        "    }\n"
+        "}\n"
+        "})();\n"
+    )
+
+
+def gen_show(config):
+    return _for_matching(config, _show_block())
+
+
+def gen_hide(config):
+    return _for_matching(config, _hide_block())
+
+
+def gen_toggle(config):
+    body = (
+        "        if (w.minimized) {\n"
+        + _show_block()
+        + "        } else {\n"
+        + "        var __onCur = w.onAllDesktops;\n"
+        + "        if (!__onCur) {\n"
+        + "            var __dsk = w.desktops;\n"
+        + "            for (var __d = 0; __d < __dsk.length; __d++) {\n"
+        + "                if (__dsk[__d] === workspace.currentDesktop)"
+        + " { __onCur = true; break; }\n"
+        + "            }\n"
+        + "        }\n"
+        + "        if (__onCur) {\n"
+        + _hide_block()
+        + "        } else {\n"
+        + _show_block()
+        + "        }\n"
+        + "        }\n"
+    )
+    return _for_matching(config, body)
+
+
+def gen_start_configure(config):
+    """Script that configures + hides a matching window (or waits for one)."""
+    match = _match_expr(config)
+    return (
+        "(function() {\n"
+        "function __cfg(w) {\n"
+        "    w.skipTaskbar = true;\n"
+        "    w.skipSwitcher = true;\n"
+        "    w.minimized = true;\n"
+        "}\n"
+        "var __ws = workspace.windowList();\n"
+        "for (var __j = 0; __j < __ws.length; __j++) {\n"
+        f"    var w = __ws[__j];\n"
+        f"    if ({match}) {{ __cfg(w); return; }}\n"
+        "}\n"
+        "workspace.windowAdded.connect(function __h(w) {\n"
+        f"    if ({match}) {{ __cfg(w); workspace.windowAdded.disconnect(__h); }}\n"
+        "});\n"
+        "})();\n"
+    )
+
+
+# ---------------------------------------------------------------------------
+# KWin script execution via D-Bus
+# ---------------------------------------------------------------------------
+
+def _load_and_run(path, name):
+    """Load a script file into KWin, run it, return the script id string."""
+    # Unload stale script with same name (ignore errors)
+    qdbus(SCRIPTING_PATH, f"{SCRIPTING_IFACE}.unloadScript", name)
+
+    r = qdbus(SCRIPTING_PATH, f"{SCRIPTING_IFACE}.loadScript", path, name)
+    if r.returncode != 0:
+        die(f"loadScript failed: {r.stderr.strip()}")
+    sid = r.stdout.strip()
+    if not sid or sid == "-1":
+        die("KWin refused to load script")
+
+    r = qdbus(f"/Scripting/Script{sid}", f"{SCRIPT_IFACE}.run")
+    if r.returncode != 0:
+        die(f"run failed: {r.stderr.strip()}")
+    return sid
+
+
+def run_kwin_script(js_code, name):
+    """Load, run and immediately unload an ephemeral KWin script."""
+    # Use PID in name to avoid races with parallel invocations
+    uname = f"{name}-{os.getpid()}"
+    fd, path = tempfile.mkstemp(suffix=".js", prefix="kquake_")
+    try:
+        with os.fdopen(fd, "w") as f:
+            f.write(js_code)
+        sid = _load_and_run(path, uname)
+        time.sleep(0.2)
+        qdbus(f"/Scripting/Script{sid}", f"{SCRIPT_IFACE}.stop")
+        qdbus(SCRIPTING_PATH, f"{SCRIPTING_IFACE}.unloadScript", uname)
+    finally:
+        os.unlink(path)
+
+
+def run_kwin_script_persistent(js_code, name):
+    """Load and run a script that stays active (for windowAdded handlers)."""
+    script_dir = os.path.join(STATE_DIR, "scripts")
+    os.makedirs(script_dir, exist_ok=True)
+    path = os.path.join(script_dir, f"{name}.js")
+    with open(path, "w") as f:
+        f.write(js_code)
+    _load_and_run(path, name)
+
+
+# ---------------------------------------------------------------------------
+# PID tracking
+# ---------------------------------------------------------------------------
+
+def _pid_path(name):
+    return os.path.join(STATE_DIR, f"{name}.pid")
+
+
+def _is_running(name):
+    pp = _pid_path(name)
+    if not os.path.isfile(pp):
+        return False
+    try:
+        with open(pp) as f:
+            pid = int(f.read().strip())
+        os.kill(pid, 0)
+        return True
+    except (ValueError, ProcessLookupError, PermissionError):
+        try:
+            os.unlink(pp)
+        except OSError:
+            pass
+        return False
+
+
+# ---------------------------------------------------------------------------
+# Commands
+# ---------------------------------------------------------------------------
+
+def _ensure_running(name, config):
+    """Start the process if not already running."""
+    if "executable" in config and not _is_running(name):
+        cmd_start(name, config)
+
+
+def cmd_start(name, config):
+    if "executable" not in config:
+        die(f"entry '{name}': 'executable' required for start")
+    if _is_running(name):
+        print(f"kquake: '{name}' already running")
+        return
+
+    exe = os.path.expanduser(config["executable"])
+    try:
+        proc = subprocess.Popen(
+            shlex.split(exe),
+            start_new_session=True,
+            stdin=subprocess.DEVNULL,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+    except FileNotFoundError:
+        die(f"executable not found: {shlex.split(exe)[0]}")
+    except OSError as e:
+        die(f"failed to start: {e}")
+
+    os.makedirs(STATE_DIR, exist_ok=True)
+    with open(_pid_path(name), "w") as f:
+        f.write(str(proc.pid))
+
+    sn = f"kquake-init-{name}"
+    run_kwin_script_persistent(gen_start_configure(config), sn)
+    try:
+        time.sleep(3)
+    finally:
+        qdbus(SCRIPTING_PATH, f"{SCRIPTING_IFACE}.unloadScript", sn)
+
+    print(f"kquake: '{name}' started")
+
+
+def cmd_show(name, config):
+    _ensure_running(name, config)
+    run_kwin_script(gen_show(config), f"kquake-{name}")
+
+
+def cmd_hide(name, config):
+    run_kwin_script(gen_hide(config), f"kquake-{name}")
+
+
+def cmd_toggle(name, config):
+    _ensure_running(name, config)
+    run_kwin_script(gen_toggle(config), f"kquake-{name}")
+
+
+def cmd_stop(name, config):
+    import signal
+    pp = _pid_path(name)
+    if not os.path.isfile(pp):
+        print(f"kquake: '{name}' is not running")
+        return
+    try:
+        with open(pp) as f:
+            pid = int(f.read().strip())
+        os.kill(pid, signal.SIGTERM)
+        print(f"kquake: '{name}' stopped")
+    except (ValueError, ProcessLookupError):
+        print(f"kquake: '{name}' was not running")
+    try:
+        os.unlink(pp)
+    except OSError:
+        pass
+
+
+# ---------------------------------------------------------------------------
+# Main
+# ---------------------------------------------------------------------------
+
+COMMANDS = {
+    "start": cmd_start,
+    "stop": cmd_stop,
+    "show": cmd_show,
+    "hide": cmd_hide,
+    "toggle": cmd_toggle,
+}
+
+
+def main():
+    if len(sys.argv) < 2 or sys.argv[1] in ("-h", "--help"):
+        print(__doc__.strip())
+        sys.exit(0)
+    if len(sys.argv) != 3:
+        die("usage: kquake <start|show|hide|toggle> <name>")
+
+    action, name = sys.argv[1], sys.argv[2]
+
+    if action not in COMMANDS:
+        die(f"unknown command: {action}")
+    if not shutil.which(QDBUS):
+        die(f"{QDBUS} not found – install kde-cli-tools or similar")
+
+    config = load_config(name)
+    COMMANDS[action](name, config)
+
+
+if __name__ == "__main__":
+    main()

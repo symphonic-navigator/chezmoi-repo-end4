@@ -1,0 +1,7 @@
+[kitty]
+executable = "kitty --class=kitty-quake"
+class = "kitty-quake"
+
+[spotify]
+executable = "flatpak run com.spotify.Client"
+class = "spotify"

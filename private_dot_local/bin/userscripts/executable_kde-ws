@@ -1,0 +1,5 @@
+#! /bin/bash
+
+sleep $1
+
+qdbus6 org.kde.kglobalaccel /component/kwin org.kde.kglobalaccel.Component.invokeShortcut "Switch to Desktop $2"
