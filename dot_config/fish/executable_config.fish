@@ -9,10 +9,10 @@ end
 if status is-interactive # Commands to run in interactive sessions can go here
 
     # 1. Environment Variables
-    set -gx PATH $HOME/bin $HOME/.local/bin /usr/local/bin $PATH $HOME/.dotnet/tools $PATH $HOME/.npm-global/bin $PATH $HOME/.local/bin/userscripts
-    set -gx EDITOR nvim
+    # set -gx PATH $HOME/bin $HOME/.local/bin /usr/local/bin $PATH $HOME/.dotnet/tools $PATH $HOME/.npm-global/bin $PATH $HOME/.local/bin/userscripts
+    # set -gx EDITOR nvim
     set -gx LANG en_US.UTF-8
-    set -gx SSH_AUTH_SOCK $HOME/.bitwarden-ssh-agent.sock
+    # set -gx SSH_AUTH_SOCK $HOME/.bitwarden-ssh-agent.sock
 
     # 2. Starship Prompt (must come early)
     if command -v starship >/dev/null 2>&1
