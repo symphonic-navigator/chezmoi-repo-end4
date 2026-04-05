@@ -97,3 +97,11 @@
 - Do not add error handling for scenarios that cannot occur
 - Prefer clarity over cleverness
 - Security first: validate at system boundaries, never trust user input, avoid common OWASP vulnerabilities
+
+## Frontloading of root cause analysis
+
+Before fixing anything, list ALL possible root causes for this bug — including infrastructure, config, and multi-layer issues. Rank them by likelihood. Then fix them in order, verifying each.
+
+## Subagent preferred
+
+When using superpowers plugin always default to subagent based execution - no question necessary. 
