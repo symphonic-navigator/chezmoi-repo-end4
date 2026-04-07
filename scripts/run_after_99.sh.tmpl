@@ -1,4 +1,8 @@
 #! /bin/bash
 
-pypr reload || true
+if pgrep -xi hyprland >/dev/null 2>&1; then
+  pypr reload || true
+else
+  echo "⏭️ pypr reload skipped (Hyprland is not running)"
+fi
 

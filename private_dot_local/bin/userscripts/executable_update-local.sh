@@ -349,6 +349,8 @@ tldr --update
 # --- update end-4 dotfiles ---
 if [[ $skip_end4 = "1" ]]; then
   info "⏭️ end-4 dotfiles update skipped (--quick)"
+elif ! pgrep -xi hyprland >/dev/null 2>&1; then
+  info "⏭️ end-4 dotfiles update skipped (Hyprland is not running)"
 else
   info "🖥️ Updating end-4 dotfiles..."
   if [[ -d "$dots_repo" && -x "$dots_setup" ]]; then
