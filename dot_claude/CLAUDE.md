@@ -18,7 +18,6 @@
 - **Ask rather than assume** — when requirements are ambiguous or there are multiple valid approaches, ask before implementing
 - Keep responses concise and direct
 - When referencing code, include `file:line` references so I can navigate quickly
-- Do not use emojis unless explicitly asked
 
 ## Tech Stack Preferences
 
