@@ -16,7 +16,6 @@
 ## Workflow & Communication Style
 
 - **Ask rather than assume** — when requirements are ambiguous or there are multiple valid approaches, ask before implementing
-- Keep responses concise and direct
 - When referencing code, include `file:line` references so I can navigate quickly
 
 ## Tech Stack Preferences
@@ -84,6 +83,7 @@
 - Default licence for new open-source projects: **GPL-3.0** - this does not apply to projects done for COR.energy
 
 ## Search Tools
+
 - ALWAYS use `rg` (ripgrep) instead of `grep` — faster, respects .gitignore
 - ALWAYS prefer LSP over text search for code navigation (go-to-definition, find-references)
 - For broad text search where LSP doesn't apply: use `rg` with `--type cs` for C# files, similar for other languages
@@ -103,4 +103,4 @@ Before fixing anything, list ALL possible root causes for this bug — including
 
 ## Subagent preferred
 
-When using superpowers plugin always default to subagent based execution - no question necessary. 
+When using superpowers plugin always default to subagent based execution - no question necessary.
