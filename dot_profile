@@ -5,6 +5,9 @@ export PATH="$PATH:$HOME/.local/share/JetBrains/Toolbox/scripts"
 export HF_HOME="$HOME/ai/hf"
 export OLLAMA_MODELS="$HOME/ai/ollama"
 export OLLAMA_HOST="0.0.0.0:11434"
+export OLLAMA_KV_CACHE_TYPE=q8_0
+export OLLAMA_FLASH_ATTENTION=1
+export OLLAMA_ORIGINS=*
 
 # MangoHud
 export MANGOHUD=1
